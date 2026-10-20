@@ -1788,7 +1788,7 @@ function searchAll(raw) {
   const recent = Store.data.recent || [];
   if (!full) { recent.slice(0, 12).forEach((r, i) => add(Object.assign({ recent: true, grp: 'r' }, r), 1000 - i)); return out; }
   for (const [key, he] of [['home', 'בית'], ['work', 'עבודה']]) { const p = Store.data[key]; if (p && (norm(he).startsWith(full) || norm(p.label).startsWith(full))) add(Object.assign({}, p, { kind: key, label: he, sub: p.label, grp: 's' }), 3000); }
-  for (const f of Store.data.favs || []) if (norm(f.label).includes(full)) add(Object.assign({ fav: true, grp: 's' }, f), 2500);
+  for (const f of Store.data.favs || []) if (norm(f.label).includes(full) || (f.name && norm(f.name).includes(full))) add(Object.assign({ fav: true, grp: 's' }, favView(f)), 2500);
   recent.forEach((r, i) => { const n = norm(r.label); if (n.startsWith(full)) add(Object.assign({ recent: true, grp: 'r' }, r), 2200 - i); else if (n.includes(full) && full.length > 1) add(Object.assign({ recent: true, grp: 'r' }, r), 2000 - i); });
   for (const [cat, words] of Object.entries(CAT_WORDS)) if (words.some(wd => norm(wd).startsWith(full)) || words.some(wd => full === norm(wd))) add({ kind: 'cat', cat, label: CATS[cat].he, sub: 'הכי קרובים אליך', x: 0, y: 0, grp: 'c' }, 1500);
   // streets and addresses
@@ -2013,7 +2013,8 @@ $('#avatarBtn').onclick = () => openProfile();
 $('#homeSheet .grab').onclick = () => { S.cat = null; show('home'); refreshMarkers(); };
 
 /* ---------- place ---------- */
-function isFav(p) { return (Store.data.favs || []).some(f => f.label === p.label && Math.hypot(f.x - p.x, f.y - p.y) < 30); }
+const favMatch = p => f => (f.label === p.label || (f.name && f.name === p.label)) && Math.hypot(f.x - p.x, f.y - p.y) < 30;
+function isFav(p) { return (Store.data.favs || []).some(favMatch(p)); }
 function openPlace(p) {
   S.place = p; clearMarkers(m => m.userData.temp); destMark.visible = false;
   addMarker(p.cat || 'dest', p.x, p.y, { temp: true, place: p }, true);
@@ -2042,7 +2043,7 @@ function openPlace(p) {
     <button class="cta press" id="aGo">${ICON.go} מסלול${t != null ? ' · ' + fmtMin(t) : ''}</button>`;
   $('#pClose').onclick = goBack;
   $('#aGo').onclick = () => openRoutePreview(p);
-  $('#aFav').onclick = () => { if (isFav(p)) Store.data.favs = Store.data.favs.filter(f => !(f.label === p.label && Math.hypot(f.x - p.x, f.y - p.y) < 30)); else Store.data.favs = [{ kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat, id: p.id }].concat(Store.data.favs || []); Store.save(); openPlace(p); toast(isFav(p) ? 'נשמר במקומות שלך' : 'הוסר מהשמורים'); };
+  $('#aFav').onclick = () => { if (isFav(p)) { const m = favMatch(p); Store.data.favs = Store.data.favs.filter(f => !m(f)); } else Store.data.favs = [{ kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat, id: p.id }].concat(Store.data.favs || []); Store.save(); openPlace(p); if (isFav(p)) nameFav(favMatch(p)); else toast('הוסר מהשמורים'); };
   const setKey = k => { Store.data[k] = { kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat }; Store.save(); refreshMarkers(); toast(k === 'home' ? 'כתובת הבית עודכנה' : 'כתובת העבודה עודכנה'); };
   $('#aHome').onclick = () => setKey('home'); $('#aWork').onclick = () => setKey('work');
   $('#aCopy').onclick = () => { const txt = p.label + (p.sub ? ' — ' + p.sub : ''); try { navigator.clipboard.writeText(txt).then(() => toast('הועתק'), () => toast(txt, 4000)); } catch (e) { toast(txt, 4000); } };
@@ -2177,7 +2178,7 @@ function onArrive() {
     ${journeyArriveHTML()}
     <button class="cta press" id="arDone">סיום</button>`;
   $('#arDone').onclick = endNav; bindJourneyArrive();
-  $('#arFav').onclick = () => { if (!isFav(p)) { Store.data.favs = [{ kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat }].concat(Store.data.favs || []); Store.save(); } toast('נשמר במקומות שלך'); };
+  $('#arFav').onclick = () => { if (!isFav(p)) { Store.data.favs = [{ kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat }].concat(Store.data.favs || []); Store.save(); } nameFav(favMatch(p)); };
   $('#arHome').onclick = () => { const h = Store.data.home; if (h) { parkEgo(); openRoutePreview(Object.assign({}, h, { kind: 'home', label: 'בית', sub: h.label })); } else { Store.data.home = { kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y }; Store.save(); toast('הוגדר כבית'); } };
   $('#arPark').onclick = () => { const pk = nearestPoi(p.x, p.y, 700, ['parking']); if (!pk) { toast('לא מצאנו חניון במפה בקרבת מקום'); return; } parkEgo(); openRoutePreview(placeFromPoi(pk)); };
   show('arrive');
@@ -2189,12 +2190,13 @@ function openPlaces() {
   const savedRow = (k, he, ic) => { const p = Store.data[k]; return `<div class="li"><span class="ic" style="color:var(--accent)">${ic}</span><span class="t"><b>${he}</b><span class="ell">${p ? esc(p.label) : 'עוד לא הוגדר'}</span></span>${p ? `<button class="link" data-go="${k}">ניווט</button>` : ''}<button class="link" data-set="${k}" style="color:var(--ink2)">${p ? 'שינוי' : 'הגדרה'}</button></div>`; };
   $('#sPlaces').innerHTML = `<div class="pagehead"><button class="circ glass press" id="plBack" aria-label="חזרה">${ICON.chev.replace('M15 6l-6 6 6 6', 'M9 6l6 6-6 6')}</button></div><h2>שמורים</h2>
     <div class="group glass strong"><div class="list">${savedRow('home', 'בית', ICON.home)}${savedRow('work', 'עבודה', ICON.work)}</div></div>
-    <div class="group glass strong"><h4>מקומות</h4><div class="list">${fav.length ? fav.map((f, i) => `<div class="li"><span class="ic" style="color:var(--warn)">${ICON.starF}</span><span class="t"><b class="ell">${esc(f.label)}</b><span class="ell">${esc(f.sub || '')}</span></span><button class="link" data-fgo="${i}">ניווט</button><button class="circ press" data-unfav="${i}" aria-label="הסרה" style="width:36px;height:36px">${ICON.x}</button></div>`).join('') : '<div class="empty">שמרו מקום עם הכוכב בכרטיס שלו.</div>'}</div></div>
+    <div class="group glass strong"><h4>מקומות</h4><div class="list">${fav.length ? fav.map((f, i) => { const v = favView(f); return `<div class="li"><span class="ic" style="color:var(--warn)">${ICON.starF}</span><span class="t"><b class="ell">${esc(v.label)}</b><span class="ell">${esc(v.sub || '')}</span></span><button class="link" data-fname="${i}" style="color:var(--ink2)">${f.name ? 'עריכה' : 'מתן שם'}</button><button class="link" data-fgo="${i}">ניווט</button><button class="circ press" data-unfav="${i}" aria-label="הסרה" style="width:36px;height:36px">${ICON.x}</button></div>`; }).join('') : '<div class="empty">שמרו מקום עם הכוכב בכרטיס שלו.</div>'}</div></div>
     <div class="group glass strong"><h4>אחרונים</h4><div class="list">${rec.length ? rec.slice(0, 15).map((r, i) => `<div class="li"><span class="ic">${ICON.clock}</span><span class="t"><b class="ell">${esc(r.label)}</b><span class="ell">${esc(r.sub || '')} · ${new Date(r.t).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' })}</span></span><button class="link" data-rgo="${i}">ניווט</button><button class="circ press" data-rdel="${i}" aria-label="מחיקה" style="width:36px;height:36px">${ICON.x}</button></div>`).join('') : '<div class="empty">עוד אין חיפושים.</div>'}</div></div>`;
   $('#plBack').onclick = goBack;
   $$('#sPlaces [data-set]').forEach(b => b.onclick = () => { S.pickFor = b.dataset.set; openSearch(); });
   $$('#sPlaces [data-go]').forEach(b => b.onclick = () => { const k = b.dataset.go, p = Store.data[k]; openRoutePreview(Object.assign({}, p, { kind: k, label: k === 'home' ? 'בית' : 'עבודה', sub: p.label })); });
-  $$('#sPlaces [data-fgo]').forEach(b => b.onclick = () => openRoutePreview(fav[+b.dataset.fgo]));
+  $$('#sPlaces [data-fgo]').forEach(b => b.onclick = () => openRoutePreview(favView(fav[+b.dataset.fgo])));
+  $$('#sPlaces [data-fname]').forEach(b => b.onclick = () => { const f = fav[+b.dataset.fname]; nameFav(x => x === f); });
   $$('#sPlaces [data-unfav]').forEach(b => b.onclick = () => { Store.data.favs.splice(+b.dataset.unfav, 1); Store.save(); openPlaces(); });
   $$('#sPlaces [data-rgo]').forEach(b => b.onclick = () => openRoutePreview(rec[+b.dataset.rgo]));
   $$('#sPlaces [data-rdel]').forEach(b => b.onclick = () => { Store.data.recent.splice(+b.dataset.rdel, 1); Store.save(); openPlaces(); });
@@ -2549,6 +2551,21 @@ function confirmBox(title, text, okLabel, onOk, danger) {
   m.hidden = false;
   $('#mOk').onclick = () => { m.hidden = true; onOk(); };
   $('#mNo').onclick = () => { m.hidden = true; };
+}
+
+function nameBox(title, value, onOk, okLabel) {
+  const m = $('#modal');
+  m.innerHTML = `<div class="mcard glass strong" role="dialog" aria-modal="true"><div class="ptitle">${title}</div><input id="mName" type="text" inputmode="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" maxlength="30" dir="auto" placeholder="למשל: אמא, חדר כושר, המשרד" style="width:100%;margin:10px 0 12px;padding:14px 16px;border-radius:16px;border:1px solid var(--line, rgba(255,255,255,.18));background:rgba(255,255,255,.08);color:var(--ink);font:500 17px var(--f, inherit);outline:none"><button class="cta press" id="mOk">${okLabel || 'שמירה'}</button><button class="link" id="mNo" style="align-self:center;color:var(--ink2)">דילוג</button></div>`;
+  m.hidden = false;
+  const inp = $('#mName'); inp.value = value || ''; setTimeout(() => { try { inp.focus(); inp.select(); } catch (e) { } }, 60);
+  const ok = () => { m.hidden = true; onOk(inp.value.trim()); };
+  $('#mOk').onclick = ok; inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); ok(); } };
+  $('#mNo').onclick = () => { m.hidden = true; };
+}
+function favView(f) { return Object.assign({}, f, f.name ? { label: f.name, sub: f.label + (f.sub ? ' · ' + f.sub : '') } : {}); }
+function nameFav(match) {
+  const favs = Store.data.favs || [], f = favs.find(match); if (!f) return;
+  nameBox(f.name ? 'שינוי שם' : 'איך לקרוא למקום הזה?', f.name || '', v => { f.name = v || undefined; if (!v) delete f.name; Store.save(); toast(v ? 'נשמר בשם "' + v + '"' : 'השם הוסר'); if (S.mode === 'places') openPlaces(); });
 }
 
 /* ---------- back navigation: in-app button, Escape, and the system/browser back ---------- */
@@ -3524,7 +3541,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792519858';
+const APP_VERSION = '1792520644';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
