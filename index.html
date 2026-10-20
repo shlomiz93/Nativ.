@@ -885,9 +885,10 @@ WAYS.forEach((w) => {
 });
 
 const MATS = {};
+function freeAfterUpload(g, keep) { const f = function () { this.array = new this.array.constructor(1); }; for (const k in g.attributes) if (!(keep && keep.includes(k))) g.attributes[k].onUpload(f); if (g.index) g.index.onUpload(f); }
 function flatMesh(buf, key, order) {
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(buf.p, 3)); g.setIndex(buf.i);
+  g.setAttribute('position', new THREE.Float32BufferAttribute(buf.p, 3)); g.setIndex(buf.p.length / 3 > 65535 ? new THREE.Uint32BufferAttribute(buf.i, 1) : new THREE.Uint16BufferAttribute(buf.i, 1)); buf.p = []; buf.i = []; g.computeBoundingSphere(); freeAfterUpload(g);
   const m = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, depthWrite: false });
   MATS[key] = m; const mesh = new THREE.Mesh(g, m); mesh.renderOrder = order; mesh.frustumCulled = false; scene.add(mesh); return mesh;
 }
@@ -918,55 +919,68 @@ bldMat.onBeforeCompile = sh => {
 };
 const BLD_KCOL = { light: [[1, 1, 1], [0.97, 0.98, 1], [0.95, 0.95, 0.96], [0.99, 0.98, 1], [0.99, 0.99, 0.99]], dark: [[0.17, 0.18, 0.22], [0.16, 0.18, 0.23], [0.15, 0.16, 0.19], [0.17, 0.18, 0.22], [0.17, 0.18, 0.21]] };
 const bldMeshes = [], BLD_LIST = [];
+function FB(n) { this.a = new Float32Array(n); this.n = 0; }
+FB.prototype.g = function (k) { if (this.n + k > this.a.length) { const b = new (this.a.constructor)(Math.max(this.a.length * 2, this.n + k)); b.set(this.a); this.a = b; } };
+FB.prototype.p = function () { this.g(arguments.length); for (let i = 0; i < arguments.length; i++) this.a[this.n++] = arguments[i]; };
+FB.prototype.done = function () { return this.a.slice(0, this.n); };
+function UB(n) { FB.call(this, 0); this.a = new Uint32Array(n); }
+UB.prototype = FB.prototype;
 {
   const TILE = 500, tiles = new Map();
   X.bld.forEach(([h2, mh2, kind, fl], bi) => {
-    const pts = []; let x = 0, y = 0;
-    for (let i = 0; i < fl.length; i += 2) { x += fl[i]; y += fl[i + 1]; pts.push([x / 2, y / 2]); }
-    if (pts.length < 3) return;
-    let A = 0, cx = 0, cy = 0; for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; A += a[0] * b[1] - b[0] * a[1]; cx += a[0]; cy += a[1]; }
-    if (A < 0) pts.reverse(); A = Math.abs(A) / 2; cx /= pts.length; cy /= pts.length;
-    if (A < 12) return;
+    const n = fl.length >> 1; if (n < 3) return;
+    const P = new Float32Array(n * 2); let x = 0, y = 0;
+    for (let i = 0; i < n; i++) { x += fl[2 * i]; y += fl[2 * i + 1]; P[2 * i] = x / 2; P[2 * i + 1] = y / 2; }
+    let A = 0, cx = 0, cy = 0, x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n, ax = P[2 * i], ay = P[2 * i + 1]; A += ax * P[2 * j + 1] - P[2 * j] * ay; cx += ax; cy += ay; if (ax < x0) x0 = ax; if (ax > x1) x1 = ax; if (ay < y0) y0 = ay; if (ay > y1) y1 = ay; }
+    if (A < 0) { for (let i = 0, j = n - 1; i < j; i++, j--) { let t = P[2 * i]; P[2 * i] = P[2 * j]; P[2 * j] = t; t = P[2 * i + 1]; P[2 * i + 1] = P[2 * j + 1]; P[2 * j + 1] = t; } }
+    A = Math.abs(A) / 2; cx /= n; cy /= n;
+    if (A < 14) return;
     let h = h2 / 2, mh = mh2 / 2;
     if (h) bldInfo.measured++;
     if (!h) { const r = hash(bi, 11); if (A < 60) h = 3.5 + r * 2.5; else if (kind === 2) h = 6 + r * 4; else if (kind === 1) h = 12 + Math.floor(r * 6) * 3.2; else if (kind === 3) h = 9 + r * 6; else h = 9.3 + Math.floor(r * 5) * 3.1; }
     if (h <= mh) return;
-    bldInfo.count++; BLD_LIST.push({ pts, cx, cy, h, A });
+    bldInfo.count++; BLD_LIST.push({ P, cx, cy, h, A, bb: [x0, y0, x1, y1] });
     const key = Math.floor(cx / TILE) + ',' + Math.floor(cy / TILE);
-    if (!tiles.has(key)) tiles.set(key, { pos: [], nor: [], col: [], win: [], idx: [], kind: [] });
-    const T = tiles.get(key), tint = 0.93 + hash(bi, 3) * 0.1, hk = Math.min(1, h / 70);
+    if (!tiles.has(key)) tiles.set(key, { pos: new FB(4096), nor: new FB(4096), win: new FB(2048), idx: new UB(4096), kind: [], tint: new FB(1024), nv: 0 });
+    const T = tiles.get(key), tint = 0.93 + hash(bi, 3) * 0.1, hk = Math.round(Math.min(1, h / 70) * 255);
     let u = 0;
-    const base = T.pos.length / 3;
-    for (let i = 0; i < pts.length; i++) {
-      const a = pts[i], b = pts[(i + 1) % pts.length]; const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy); if (l < 0.05) continue;
-      const nx = dy / l, ny = -dx / l, v0 = T.pos.length / 3;
-      T.pos.push(a[0], mh, -a[1], b[0], mh, -b[1], b[0], h, -b[1], a[0], h, -a[1]);
-      for (let k = 0; k < 4; k++) { T.nor.push(nx, 0, -ny); T.col.push(tint * 0.92, tint * 0.92, tint * 0.92); T.kind.push(kind, hk); }
-      T.win.push(u, mh, u + l, mh, u + l, h, u, h); u += l;
-      T.idx.push(v0, v0 + 1, v0 + 2, v0, v0 + 2, v0 + 3);
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n, ax = P[2 * i], ay = P[2 * i + 1], bx = P[2 * j], by = P[2 * j + 1];
+      const dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy); if (l < 0.05) continue;
+      const nx = dy / l, ny = -dx / l, v0 = T.nv;
+      T.pos.p(ax, mh, -ay, bx, mh, -by, bx, h, -by, ax, h, -ay);
+      T.nor.p(nx, 0, -ny, nx, 0, -ny, nx, 0, -ny, nx, 0, -ny);
+      for (let k = 0; k < 4; k++) { T.kind.push(kind, hk); T.tint.p(tint * 0.92); }
+      T.win.p(u, mh, u + l, mh, u + l, h, u, h); u += l;
+      T.idx.p(v0, v0 + 1, v0 + 2, v0, v0 + 2, v0 + 3); T.nv += 4;
     }
-    const v = pts.map(p => new THREE.Vector2(p[0], p[1]));
+    const v = []; for (let i = 0; i < n; i++) v.push(new THREE.Vector2(P[2 * i], P[2 * i + 1]));
     let faces; try { faces = THREE.ShapeUtils.triangulateShape(v, []); } catch (e) { faces = []; }
-    const r0 = T.pos.length / 3;
-    for (const p of pts) { T.pos.push(p[0], h, -p[1]); T.nor.push(0, 1, 0); T.col.push(tint * 1.03, tint * 1.03, tint * 1.03); T.win.push(0, 0); T.kind.push(kind, hk); }
-    for (const f of faces) T.idx.push(r0 + f[0], r0 + f[1], r0 + f[2]);
+    const r0 = T.nv;
+    for (let i = 0; i < n; i++) { T.pos.p(P[2 * i], h, -P[2 * i + 1]); T.nor.p(0, 1, 0); T.tint.p(tint * 1.03); T.win.p(0, 0); T.kind.push(kind, hk); }
+    T.nv += n;
+    for (const f of faces) T.idx.p(r0 + f[0], r0 + f[1], r0 + f[2]);
   });
+  X.bld = null;
   for (const T of tiles.values()) {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(T.pos, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(T.nor, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(T.col, 3));
-    g.setAttribute('aWin', new THREE.Float32BufferAttribute(T.win, 2));
-    g.userData.kind = T.kind; g.userData.tint = T.col.slice();
-    g.setIndex(T.idx); g.computeBoundingSphere();
+    const g = new THREE.BufferGeometry(), nv = T.nv;
+    g.setAttribute('position', new THREE.BufferAttribute(T.pos.done(), 3));
+    const nf = T.nor.done(), ni = new Int8Array(nf.length); for (let i = 0; i < nf.length; i++) ni[i] = Math.round(nf[i] * 127);
+    g.setAttribute('normal', new THREE.BufferAttribute(ni, 3, true));
+    g.setAttribute('color', new THREE.BufferAttribute(new Uint8Array(nv * 3), 3, true));
+    g.setAttribute('aWin', new THREE.BufferAttribute(T.win.done(), 2));
+    g.userData.kind = Uint8Array.from(T.kind); g.userData.tint = T.tint.done();
+    const ix = T.idx.done(); g.setIndex(new THREE.BufferAttribute(nv > 65535 ? ix : Uint16Array.from(ix), 1)); g.computeBoundingSphere(); freeAfterUpload(g, ['color']); T.pos = T.nor = T.win = T.idx = T.tint = T.kind = null;
     const m = new THREE.Mesh(g, bldMat); scene.add(m); bldMeshes.push(m);
   }
+  tiles.clear();
 }
 function paintBuildings(dark) {
   const K = dark ? BLD_KCOL.dark : BLD_KCOL.light;
   for (const m of bldMeshes) {
     const g = m.geometry, kd = g.userData.kind, t0 = g.userData.tint, col = g.attributes.color.array;
-    for (let i = 0, j = 0; i < col.length; i += 3, j += 2) { const k = K[kd[j]] || K[4], hk = kd[j + 1], lift = dark ? 1 + hk * 0.25 : 1 - hk * 0.03; col[i] = k[0] * t0[i] * lift; col[i + 1] = k[1] * t0[i + 1] * lift; col[i + 2] = k[2] * t0[i + 2] * lift; }
+    for (let i = 0, j = 0, v = 0; i < col.length; i += 3, j += 2, v++) { const k = K[kd[j]] || K[4], hk = kd[j + 1] / 255, t = t0[v], lift = dark ? 1 + hk * 0.25 : 1 - hk * 0.03; col[i] = Math.min(255, k[0] * t * lift * 255); col[i + 1] = Math.min(255, k[1] * t * lift * 255); col[i + 2] = Math.min(255, k[2] * t * lift * 255); }
     g.attributes.color.needsUpdate = true;
   }
 }
@@ -1115,6 +1129,7 @@ const fleet = {};
     const glass = new THREE.InstancedMesh(T.gGlass, glassMat, n);
     const wheels = new THREE.InstancedMesh(wheelGeo, wheelMat, n * 4);
     const tail = new THREE.InstancedMesh(new THREE.BoxGeometry(0.05, 0.12, T.W * 0.8), tailMat, n);
+    for (let i = 0; i < n; i++) { body.setColorAt(i, new THREE.Color(0xffffff)); tail.setColorAt(i, new THREE.Color(0x550000)); } // every mesh sharing a material must carry instance colours
     [body, glass, wheels, tail].forEach(m => { m.frustumCulled = false; scene.add(m); });
     fleet[t] = { body, glass, wheels, tail, n };
   }
@@ -3343,20 +3358,19 @@ const BLD_LABELS = [];
   const GENERIC = new Set(['גינה ציבורית', 'תחנת דלק', 'חניון', 'כספומט', 'שירותים ציבוריים']);
   const C = 60, grid = new Map(), key = (i, j) => i * 100003 + j;
   BLD_LIST.forEach((b, bi) => {
-    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; for (const [x, y] of b.pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-    b.bb = [x0, y0, x1, y1];
+    const [x0, y0, x1, y1] = b.bb;
     for (let i = Math.floor((x0 - 12) / C); i <= Math.floor((x1 + 12) / C); i++) for (let j = Math.floor((y0 - 12) / C); j <= Math.floor((y1 + 12) / C); j++) { const k = key(i, j); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(bi); }
   });
-  const inside = (x, y, pts) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
-  const segD = (x, y, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l)); return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy); };
+  const inside = (x, y, P) => { let c = false; const n = P.length >> 1; for (let i = 0, j = n - 1; i < n; j = i++) { const ax = P[2 * i], ay = P[2 * i + 1], bx = P[2 * j], by = P[2 * j + 1]; if ((ay > y) !== (by > y) && x < (bx - ax) * (y - ay) / (by - ay) + ax) c = !c; } return c; };
+  const segD = (x, y, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l)); return Math.hypot(x - ax - t * dx, y - ay - t * dy); };
   const byB = new Map();
   for (const p of POIS) {
     if (SKIP.has(p.cat) || !p.name || GENERIC.has(p.name) || p.name === CATS[p.cat].he) continue;
     const L = grid.get(key(Math.floor(p.x / C), Math.floor(p.y / C))); if (!L) continue;
     let hit = -1, best = 12;
     for (const bi of L) { const b = BLD_LIST[bi], bb = b.bb; if (p.x < bb[0] - 12 || p.x > bb[2] + 12 || p.y < bb[1] - 12 || p.y > bb[3] + 12) continue;
-      if (inside(p.x, p.y, b.pts)) { if (hit < 0 || best > 0 || b.A > BLD_LIST[hit].A) { hit = bi; best = 0; } continue; }
-      if (best > 0) for (let i = 0; i < b.pts.length; i++) { const d = segD(p.x, p.y, b.pts[i], b.pts[(i + 1) % b.pts.length]); if (d < best) { best = d; hit = bi; } } }
+      if (inside(p.x, p.y, b.P)) { if (hit < 0 || best > 0 || b.A > BLD_LIST[hit].A) { hit = bi; best = 0; } continue; }
+      if (best > 0) { const P = b.P, n = P.length >> 1; for (let i = 0; i < n; i++) { const j = (i + 1) % n, d = segD(p.x, p.y, P[2 * i], P[2 * i + 1], P[2 * j], P[2 * j + 1]); if (d < best) { best = d; hit = bi; } } } }
     if (hit < 0) continue;
     if (!byB.has(hit)) byB.set(hit, []); byB.get(hit).push(p);
   }
@@ -3367,6 +3381,7 @@ const BLD_LABELS = [];
     const main = uniq[0], rest = uniq.slice(1);
     BLD_LABELS.push({ x: b.cx, y: b.cy, h: b.h, name: main.name, cat: main.cat, rest: rest.map(p => p.name), big: main.cat === 'mall' || uniq.length >= 4 || b.A > 3000, poi: main });
   }
+  grid.clear(); BLD_LIST.length = 0; // footprints were only needed to place the names
 }
 function labelTex(L) {
   if (L.tex) return L.tex;
@@ -3508,7 +3523,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792517212';
+const APP_VERSION = '1792519370';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -3560,7 +3575,7 @@ if (Store.data.account) { enterHome(); flyIn(); } else { renderAuth(); show('aut
 $('#loading').hidden = true;
 
 let last = performance.now(), lampT = 0, hudT = 0, toneT = 60, clkT = 15, wxT = 900;
-function loop(now) {
+function loopBody(now) {
   const rdt = Math.max(0, Math.min(0.06, (now - last) / 1000)); last = now;
   let rem = rdt * (S.driving ? S.sim : 1);
   while (rem > 1e-4) { const dt = Math.min(0.05, rem); rem -= dt; simT += dt; updateEgo(dt); if (S.driving && S.route) egoPose(); updateAI(dt); }
@@ -3583,7 +3598,11 @@ function loop(now) {
   bldUniforms.uFade.value = cam.mode === 'chase' && S.navCam === 0 ? 1 : 0; bldUniforms.uCam.value.copy(camera.position); bldUniforms.uCar.value.set(egoX, 1.2, -egoY);
   renderer.render(scene, camera);
   hudT -= rdt; if (hudT <= 0) { hudT = 0.1; updateHUD(); }
+}
+let loopErrs = 0;
+function loop(now) { // one bad frame must never freeze the map: schedule the next frame first, then draw
   requestAnimationFrame(loop);
+  try { loopBody(now); } catch (e) { if (loopErrs++ < 3) { console.error(e); try { toast('תקלה בתצוגה: ' + String(e.message || e).slice(0, 60), 4000); } catch (_) { } } }
 }
 requestAnimationFrame(loop);
 
