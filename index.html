@@ -3504,6 +3504,30 @@ function liveBadge() {
 setInterval(() => { if (S.driving && LIVE.on && !liveActive()) { liveChip.className = 'lost'; liveChip.textContent = 'מחפש GPS…'; } else liveBadge(); }, 2000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.driving) keepAwake(true); });
 
+/* ================= OTA: the app updates itself =================
+   The build stamps a version; the hosted site publishes version.json next to index.html.
+   Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
+   right away when parked, or right after arrival when driving. */
+const APP_VERSION = '1792516276';
+let otaPending = false;
+async function otaCheck() {
+  if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
+  try {
+    const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+    const v = (await r.json()).v; if (!v || v === APP_VERSION) return;
+    otaPending = true; otaApply();
+  } catch (e) { }
+}
+function otaApply() {
+  if (!otaPending) return;
+  if (S.driving && !S.arrived) return; // never interrupt a drive
+  toast('יש גרסה חדשה של נתיב · מתעדכן…', 1500);
+  setTimeout(() => location.reload(), 1200);
+}
+setInterval(otaCheck, 3 * 60000); setTimeout(otaCheck, 8000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') otaCheck(); });
+setInterval(otaApply, 20000);
+
 /* ================= BOOT ================= */
 function fitDevice() {
   const big = innerWidth >= 520, st = $('#stage'), dv = $('#device');
