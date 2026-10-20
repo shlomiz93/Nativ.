@@ -120,6 +120,7 @@
 .rpq{display:flex;gap:6px;flex:none!important}.rpq button{height:36px;padding:0 12px;border-radius:999px;background:var(--fill2);font-size:13px;font-weight:600}.rpq button:first-child{background:var(--accent);color:#fff}
 #man #liveChip{position:absolute;bottom:12px;left:18px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.14);color:rgba(255,255,255,.8)}
 #man #liveChip.on{background:rgba(47,212,122,.25);color:#7dffb5}#man #liveChip.lost{background:rgba(242,162,12,.25);color:#ffd27a}
+#q{-webkit-appearance:none;appearance:none}#q::-webkit-search-cancel-button,#q::-webkit-search-decoration{-webkit-appearance:none;display:none}
 [hidden]{display:none!important}
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%;overflow:hidden}
@@ -425,7 +426,7 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
     <section id="sSearch" hidden>
       <div class="sbar">
         <button class="circ glass press" id="sBack" aria-label="חזרה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
-        <div class="sfield glass strong"><div class="ghost" id="ghost" aria-hidden="true"></div><input id="q" type="text" autocomplete="off" spellcheck="false" placeholder="כתובת, רחוב או מקום" aria-autocomplete="both" enterkeyhint="search"><button class="accept" id="acceptHint" hidden>השלמה</button></div>
+        <div class="sfield glass strong"><div class="ghost" id="ghost" aria-hidden="true"></div><input id="q" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="כתובת, רחוב או מקום" aria-autocomplete="both" enterkeyhint="search"><button class="accept" id="acceptHint" hidden>השלמה</button></div>
       </div>
       <div id="sResults"></div>
     </section>
@@ -1847,7 +1848,7 @@ function renderAuth() {
   const c = $('#authCard'); const A = authState;
   if (A.step === 'otp') {
     c.innerHTML = `<div class="row"><button class="ibtn" id="otpBack" aria-label="חזרה">${ICON.chev.replace('M15 6l-6 6 6 6', 'M9 6l6 6-6 6')}</button><div class="grow"><div class="ptitle" style="font-size:40px">הקוד שקיבלת</div><div class="psub">שלחנו 4 ספרות אל <bdi>${esc(A.contact)}</bdi></div></div></div>
-      <div class="otp" id="otp">${[0, 1, 2, 3].map(i => `<input id="otp${i}" inputmode="numeric" maxlength="1" aria-label="ספרה ${i + 1}">`).join('')}</div>
+      <div class="otp" id="otp">${[0, 1, 2, 3].map(i => `<input id="otp${i}" type="text" inputmode="numeric" pattern="[0-9]*" ${i === 0 ? 'autocomplete="one-time-code"' : 'autocomplete="off"'} maxlength="1" aria-label="ספרה ${i + 1}">`).join('')}</div>
       <span class="err" id="otpErr" style="text-align:center"></span>
       <button class="cta" id="otpGo">כניסה</button>
       <div class="note">גרסת הדגמה: עדיין לא נשלחת הודעה אמיתית. הקוד הוא <b>2468</b>.</div>`;
@@ -1859,20 +1860,25 @@ function renderAuth() {
   }
   const su = A.tab === 'signup';
   c.innerHTML = `<div class="seg" role="tablist"><button role="tab" id="tSign" aria-selected="${su}">חשבון חדש</button><button role="tab" id="tLog" aria-selected="${!su}">כבר יש לי חשבון</button></div>
-    ${su ? `<div class="field"><label for="fName">איך לקרוא לך?</label><input id="fName" autocomplete="given-name" value="${esc(A.name)}" placeholder="שם פרטי"><span class="err" id="eName"></span></div>` : ''}
-    <div class="field"><label for="fContact">טלפון נייד או אימייל</label><input id="fContact" inputmode="email" autocomplete="username" dir="ltr" style="text-align:right" value="${esc(A.contact)}" placeholder="050-0000000"><span class="err" id="eContact"></span></div>
+    ${su ? `<div class="field"><label for="fName">איך לקרוא לך?</label><input id="fName" type="text" inputmode="text" autocomplete="given-name" autocapitalize="words" enterkeyhint="next" value="${esc(A.name)}" placeholder="שם פרטי"><span class="err" id="eName"></span></div>` : ''}
+    <div class="field"><label for="fContact">${A.via === 'email' ? 'אימייל' : 'טלפון נייד'}</label>${A.via === 'email'
+      ? `<input id="fContact" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" enterkeyhint="go" dir="ltr" style="text-align:right" value="${esc(A.contact)}" placeholder="name@example.com">`
+      : `<input id="fContact" type="tel" inputmode="tel" autocomplete="tel-national" enterkeyhint="go" dir="ltr" style="text-align:right" value="${esc(A.contact)}" placeholder="050-0000000">`}<span class="err" id="eContact"></span><button class="link" type="button" id="viaSwap" style="align-self:flex-start;padding:4px 2px;font-size:13.5px">${A.via === 'email' ? 'עם מספר טלפון במקום' : 'עם אימייל במקום'}</button></div>
     ${su ? `<div class="check"><input type="checkbox" id="fTerms" aria-describedby="termsTxt"><span id="termsTxt">קראתי ואני מסכים/ה ל<button class="lnk" type="button" data-legal="terms">תנאי השימוש</button> ול<button class="lnk" type="button" data-legal="privacy">מדיניות הפרטיות</button>. גיל 16 ומעלה.</span></div><span class="err" id="eTerms"></span>` : ''}
     <button class="cta" id="authGo">${su ? 'יוצאים לדרך' : 'שליחת קוד'}</button>
     <button class="link" id="guest" style="align-self:center;padding:6px">להמשיך בלי חשבון</button>`;
   $$('#authCard [data-legal]').forEach(b => b.onclick = () => openLegal(b.dataset.legal));
   $('#tSign').onclick = () => { A.tab = 'signup'; renderAuth(); };
   $('#tLog').onclick = () => { A.tab = 'login'; renderAuth(); };
+  $('#viaSwap').onclick = () => { if (su && $('#fName')) A.name = $('#fName').value; A.via = A.via === 'email' ? 'phone' : 'email'; A.contact = ''; renderAuth(); setTimeout(() => $('#fContact').focus(), 30); };
+  if ($('#fName')) $('#fName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#fContact').focus(); } });
+  $('#fContact').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#authGo').click(); } });
   $('#guest').onclick = () => { Store.data.account = { guest: true, name: '', since: Date.now() }; Store.save(); enterHome(); };
   $('#authGo').onclick = () => {
     const contact = $('#fContact').value.trim(), digits = contact.replace(/\D/g, '');
     const isPhone = /^0?5\d{8}$/.test(digits) || /^9725\d{8}$/.test(digits), isMail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
     let ok = true; $('#eContact').textContent = ''; if (su) { $('#eName').textContent = ''; $('#eTerms').textContent = ''; }
-    if (!isPhone && !isMail) { $('#eContact').textContent = 'צריך מספר נייד ישראלי (05X) או כתובת אימייל.'; ok = false; }
+    if (A.via === 'email' ? !isMail : !isPhone) { $('#eContact').textContent = A.via === 'email' ? 'צריך כתובת אימייל מלאה, למשל name@gmail.com.' : 'צריך מספר נייד ישראלי שמתחיל ב-05, 10 ספרות.'; ok = false; }
     if (su) { const nm = $('#fName').value.trim(); A.name = nm; if (nm.length < 2) { $('#eName').textContent = 'כתבו לפחות שתי אותיות.'; ok = false; } if (!$('#fTerms').checked) { $('#eTerms').textContent = 'כדי להמשיך צריך לאשר את התנאים.'; ok = false; } }
     if (!ok) return;
     A.contact = isPhone ? ('0' + digits.replace(/^972/, '').replace(/^0/, '')).replace(/^(\d{3})(\d+)/, '$1-$2') : contact;
