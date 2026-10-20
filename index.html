@@ -1967,7 +1967,7 @@ function pickResult(p) {
   if (p.kind === 'cat') { enterHome(); openCategory(p.cat); return; }
   if (S.pickFor === 'origin') { S.pickFor = null; pushRecent(p); const back = S.originBack; S.originBack = null; if (back) { S.mode = 'home'; setOrigin({ src: 'pick', label: p.label, x: p.x, y: p.y }, true); openRoutePreview(back, true); toast('יוצאים מ' + p.label); } else { enterHome(); setOrigin({ src: 'pick', label: p.label, x: p.x, y: p.y }); } return; }
   if (S.pickFor && S.thenOrigin) { S.thenOrigin = false; const k = S.pickFor; S.pickFor = null; Store.data[k] = { kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat }; Store.save(); pushRecent(p); enterHome(); setOrigin({ src: k, label: p.label, x: p.x, y: p.y }); return; }
-  if (S.pickFor) { const k = S.pickFor; S.pickFor = null; Store.data[k] = { kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat }; Store.save(); toast(k === 'home' ? 'הבית נשמר' : 'העבודה נשמרה'); pushRecent(p); enterHome(); return; }
+  if (S.pickFor) { const k = S.pickFor; S.pickFor = null; Store.data[k] = { kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat }; Store.save(); if (typeof refreshMarkers === 'function') refreshMarkers(); toast(k === 'home' ? 'כתובת הבית עודכנה' : 'כתובת העבודה עודכנה'); pushRecent(p); enterHome(); return; }
   if (p.kind === 'home' || p.kind === 'work') { openRoutePreview(p); return; }
   pushRecent(p); openPlace(p);
 }
@@ -1982,7 +1982,7 @@ function renderResults() {
   let html = '';
   if (!raw.trim()) {
     html += `<div class="hscroll" style="margin-bottom:12px">${HOME_CATS.map(c => `<button class="pill glass press" data-cat="${c}">${mono(CATS[c].d)}${SHORT[c] || CATS[c].he}</button>`).join('')}</div>`;
-    html += `<div class="card glass strong"><div class="list">${[['home', 'בית', ICON.home], ['work', 'עבודה', ICON.work]].map(([k, he, ic]) => { const p = Store.data[k]; return `<button class="li" data-saved="${k}"><span class="ic" style="color:var(--accent)">${ic}</span><span class="t"><b>${he}</b><span class="ell">${p ? esc(p.label) : 'עוד לא הוגדר'}</span></span><span class="meta" style="color:var(--accent);font-family:var(--f)">${p ? '' : 'הגדרה'}</span></button>`; }).join('')}</div></div>`;
+    html += `<div class="card glass strong"><div class="list">${[['home', 'בית', ICON.home], ['work', 'עבודה', ICON.work]].map(([k, he, ic]) => { const p = Store.data[k]; return `<button class="li" data-saved="${k}"><span class="ic" style="color:var(--accent)">${ic}</span><span class="t"><b>${he}</b><span class="ell">${p ? esc(p.label) : 'עוד לא הוגדר'}</span></span><span class="meta hwEdit" data-edit="${k}" role="button" aria-label="${p ? 'שינוי' : 'הגדרה'} ${he}" style="color:var(--accent);font-family:var(--f);padding:10px 4px 10px 0">${p ? 'שינוי' : 'הגדרה'}</span></button>`; }).join('')}</div></div>`;
     html += `<div class="sec"><span class="eyebrow">אחרונים</span>${res.length ? '<button id="clr2">ניקוי</button>' : ''}</div>`;
     html += res.length ? `<div class="card glass strong"><div class="list">${res.map((r, i) => listItem(r, i)).join('')}</div></div>` : `<div class="empty">נסו "לח״י 22 בני ברק", "ביאליק רמת גן" או "קפה".</div>`;
   } else if (!res.length) html = `<div class="card glass strong"><div class="empty">לא מצאנו את זה באזור המפה: גוש דן והשרון: מרעננה וכפר סבא ועד בני ברק, פתח תקווה ותל אביב. נסו שם רחוב, רחוב ומספר, או שם של מקום.</div></div>`;
@@ -1993,6 +1993,7 @@ function renderResults() {
   $('#sResults').innerHTML = html;
   bindList('#sResults', res);
   $$('#sResults .hscroll .pill').forEach(b => b.onclick = () => pickResult({ kind: 'cat', cat: b.dataset.cat }));
+  $$('#sResults [data-edit]').forEach(e => e.onclick = ev => { ev.stopPropagation(); const k = e.dataset.edit; S.pickFor = k; $('#q').value = ''; $('#q').focus(); toast(k === 'home' ? 'הקלידו את כתובת הבית החדשה ובחרו אותה' : 'הקלידו את כתובת העבודה ובחרו אותה', 3000); });
   $$('#sResults [data-saved]').forEach(b => b.onclick = () => { const k = b.dataset.saved, p = Store.data[k]; if (p) openRoutePreview(Object.assign({}, p, { kind: k, label: k === 'home' ? 'בית' : 'עבודה', sub: p.label })); else { S.pickFor = k; $('#q').focus(); toast('הקלידו כתובת ובחרו אותה'); } });
   const c2 = $('#clr2'); if (c2) c2.onclick = () => { Store.data.recent = []; Store.save(); renderResults(); };
   const top = res[0], g = $('#ghost');
@@ -2042,7 +2043,7 @@ function openPlace(p) {
   $('#pClose').onclick = goBack;
   $('#aGo').onclick = () => openRoutePreview(p);
   $('#aFav').onclick = () => { if (isFav(p)) Store.data.favs = Store.data.favs.filter(f => !(f.label === p.label && Math.hypot(f.x - p.x, f.y - p.y) < 30)); else Store.data.favs = [{ kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat, id: p.id }].concat(Store.data.favs || []); Store.save(); openPlace(p); toast(isFav(p) ? 'נשמר במקומות שלך' : 'הוסר מהשמורים'); };
-  const setKey = k => { Store.data[k] = { kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat }; Store.save(); refreshMarkers(); toast(k === 'home' ? 'הוגדר כבית' : 'הוגדר כעבודה'); };
+  const setKey = k => { Store.data[k] = { kind: p.kind, label: p.label, sub: p.sub, x: p.x, y: p.y, cat: p.cat }; Store.save(); refreshMarkers(); toast(k === 'home' ? 'כתובת הבית עודכנה' : 'כתובת העבודה עודכנה'); };
   $('#aHome').onclick = () => setKey('home'); $('#aWork').onclick = () => setKey('work');
   $('#aCopy').onclick = () => { const txt = p.label + (p.sub ? ' — ' + p.sub : ''); try { navigator.clipboard.writeText(txt).then(() => toast('הועתק'), () => toast(txt, 4000)); } catch (e) { toast(txt, 4000); } };
   show('place');
@@ -3523,7 +3524,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792519370';
+const APP_VERSION = '1792519858';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
