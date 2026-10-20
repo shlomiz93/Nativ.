@@ -2053,7 +2053,7 @@ function openPlace(p) {
 /* ---------- route preview ---------- */
 function openRoutePreview(dest, keepStops) {
   if (!S.origin) { S.pendingDest = dest; openOriginPicker(); toast('קודם בוחרים מאיפה יוצאים', 2200); return; }
-  S.dest = dest; if (!keepStops) S.stops = [];
+  S.dest = dest; if (!keepStops) { S.stops = []; S.showSugg = false; }
   const rf = planRoute(dest, S.stops, 'fast'), rs = rf ? planRoute(dest, S.stops, 'smooth') : null;
   S.alt = { fast: rf, smooth: rs }; S.routeMode = S.routeMode || 'fast';
   const r = S.alt[S.routeMode] || rf;
@@ -2068,7 +2068,7 @@ function useRoute(r) {
   S.stops.forEach(st => addMarker(st.cat, st.x, st.y, { stop: true }, true));
   destMark.position.set(r.DX[r.M - 1], 0, -r.DY[r.M - 1]); destMark.visible = true;
   S.sugg = computeSuggestions(r);
-  { const per = {}; S.sugg.filter(o => o.p.cat !== 'parking' && (per[o.p.cat] = (per[o.p.cat] || 0) + 1) <= 2).slice(0, 8).forEach(o => { if (!S.stops.some(x => x.id === o.p.id)) addMarker(o.p.cat, o.p.x, o.p.y, { sugg: true, poi: o.p }); }); }
+  if (S.showSugg) { const per = {}; S.sugg.filter(o => o.p.cat !== 'parking' && (per[o.p.cat] = (per[o.p.cat] || 0) + 1) <= 2).slice(0, 8).forEach(o => { if (!S.stops.some(x => x.id === o.p.id)) addMarker(o.p.cat, o.p.x, o.p.y, { sugg: true, poi: o.p }); }); }
   renderRouteSheet(); show('route');
   fitRoute(r);
 }
@@ -2116,18 +2116,18 @@ function renderSuggSection(container, onChange) {
 function renderRouteSheet() {
   const r = S.previewRoute, st = routeStats(r);
   $('#routeBody').innerHTML = `<div class="row" style="align-items:flex-start"><div class="grow"><div class="eta"><span class="v">${Math.max(1, Math.round(st.sec / 60))}<small>דק׳</small></span><span class="u">${fmtDist(st.dist)} · הגעה ${fmtClock(st.sec)}</span></div><div class="psub ell">אל ${esc(S.dest.label)}${st.via.length ? ' · דרך ' + esc(st.via.join(' ו')) : ''}</div></div><button class="circ press" id="rClose" style="background:var(--fill)" aria-label="חזרה">${ICON.chev.replace('M15 6l-6 6 6 6', 'M9 6l6 6-6 6')}</button></div>
+    <button class="cta press" id="rGo" style="margin:10px 0 12px">${ICON.go} יציאה</button>
     ${routeOptsHTML()}
     <button class="fromrow press" id="rFrom" style="margin:2px 0 4px"><span class="odot ${S.origin && S.origin.src === 'gps' ? 'gps' : ''}"></span><span>יוצאים מ<b>${esc(originLabel().t)}</b></span><small>שינוי</small></button>
     ${(() => { const arr = Date.now() + st.sec * 1000, al = wxAlerts(Date.now(), Math.max(1, st.sec / 3600 + 0.5))[0], h = wxAt(arr); return al ? `<div class="wxline">${wxIcon(al.k === 'rain' ? 63 : al.k === 'heat' ? 0 : 95, true, 20)}<span>${esc(al.k === 'rain' ? (al.mins * 60 < st.sec ? 'צפוי גשם בזמן הנסיעה' : al.short) + ' · כביש רטוב, האטו בפניות' : al.txt)}</span></div>` : h ? `<div class="wxline calm">${wxIcon(h.w, true, 20)}<span>ביעד בהגעה: ${Math.round(h.T)}° · ${WXN(h.w)}</span></div>` : ''; })()}
-    ${stripHTML(r, st)}
-    <div class="facts" style="align-items:center"><span><b>${r.sigs.length}</b>רמזורים</span><span><b>${st.turns}</b>פניות</span>${st.cams ? `<span><b>${st.cams}</b>מצלמות</span>` : ''}${st.stopsN ? `<span><b>${st.stopsN}</b>עצור</span>` : ''}<span class="grow"></span><button class="link" id="rSteps">רשימת הוראות</button></div>
     ${S.stops.length ? `<div class="tags">${S.stops.map((s, i) => `<button class="tag" data-rm="${i}" style="display:inline-flex;gap:5px;align-items:center">${esc(s.label)} ${ICON.x.replace('<svg', '<svg style="width:12px;height:12px"')}</button>`).join('')}</div>` : ''}
-    <div id="suggBox"></div>
-    <button class="cta press" id="rGo">${ICON.go} יציאה</button>`;
+    <div class="facts" style="align-items:center;margin-top:6px"><button class="link" id="rAddStop" style="display:inline-flex;align-items:center;gap:6px">${ICON.plus.replace('<svg', '<svg style="width:16px;height:16px"')} ${S.showSugg ? 'הסתרת עצירות' : 'עצירה בדרך'}</button><span class="grow"></span><button class="link" id="rSteps" style="color:var(--ink2)">${r.sigs.length} רמזורים · ${st.turns} פניות ›</button></div>
+    <div id="suggBox"${S.showSugg ? '' : ' hidden'}></div>`;
   $('#rClose').onclick = goBack; $('#rFrom').onclick = openOriginPicker;
   $$('#routeBody [data-rmode]').forEach(b => b.onclick = () => { if (S.routeMode === b.dataset.rmode) return; S.routeMode = b.dataset.rmode; useRoute(S.alt[S.routeMode]); });
   $('#rSteps').onclick = () => openSteps(r);
   $$('#routeBody [data-rm]').forEach(b => b.onclick = () => { S.stops.splice(+b.dataset.rm, 1); openRoutePreview(S.dest, true); });
+  $('#rAddStop').onclick = () => { S.showSugg = !S.showSugg; useRoute(S.previewRoute); };
   renderSuggSection($('#suggBox'), ch => { if (ch.type === 'dest') openRoutePreview(ch.place); else openRoutePreview(S.dest, true); });
   $('#rGo').onclick = () => ensureSafety(startNav);
 }
@@ -2841,15 +2841,12 @@ function routeOptsHTML() {
   const A = S.alt || {}, f = A.fast, s = A.smooth; if (!f) return '';
   const sf = routeStats(f), mf = Math.max(1, Math.round(sf.sec / 60));
   const ss0 = s ? routeStats(s) : null;
-  if (!s || (s.sigs.length >= f.sigs.length && ss0.turns >= sf.turns) || (Math.abs(s.total - f.total) < f.total * 0.02 && s.sigs.length === f.sigs.length)) return `<div class="rwhy">${ICON.check || ''}המסלול המהיר הוא גם החלק ביותר: ${f.sigs.length} רמזורים, ${sf.turns} פניות.</div>`;
+  if (!s || (s.sigs.length >= f.sigs.length && ss0.turns >= sf.turns) || (Math.abs(s.total - f.total) < f.total * 0.02 && s.sigs.length === f.sigs.length)) return '';
   const ss = routeStats(s), ms = Math.max(1, Math.round(ss.sec / 60));
-  const dSig = f.sigs.length - s.sigs.length, dTurn = sf.turns - ss.turns, dMin = ms - mf;
+  const dSig = f.sigs.length - s.sigs.length, dMin = ms - mf;
   const sel = S.routeMode === 'smooth' ? 'smooth' : 'fast';
-  const why = sel === 'smooth'
-    ? [dSig > 0 ? `${dSig} רמזורים פחות` : '', dTurn > 0 ? `${dTurn} פניות פחות` : '', dTurn < 0 ? `אבל ${-dTurn} פניות יותר` : ''].filter(Boolean).join(', ') + (dMin > 0 ? `, ועוד ${dMin} דק׳ נסיעה` : ', בלי תוספת זמן')
-    : `הדרך הקצרה ביותר בזמן${dMin > 0 ? `, חוסכת ${dMin} דק׳` : ''}`;
-  const opt = (k, he, m, st, r) => `<button class="ropt press" data-rmode="${k}" aria-pressed="${sel === k}"><span>${he}</span><b>${m}<small> דק׳</small></b><small>${r.sigs.length} רמזורים · ${st.turns} פניות</small></button>`;
-  return `<div class="ropts" role="group" aria-label="סוג מסלול">${opt('fast', 'מהיר', mf, sf, f)}${opt('smooth', 'חלק', ms, ss, s)}</div><div class="rwhy">${esc(why)}</div>`;
+  const opt = (k, he, m, line) => `<button class="ropt press" data-rmode="${k}" aria-pressed="${sel === k}"><span>${he}</span><b>${m}<small> דק׳</small></b><small>${line}</small></button>`;
+  return `<div class="ropts" role="group" aria-label="איזה מסלול">${opt('fast', 'הכי מהיר', mf, 'מגיעים הכי מוקדם')}${opt('smooth', 'הכי רגוע', ms, (dSig > 0 ? dSig + ' רמזורים פחות' : 'פחות פניות') + (dMin > 0 ? ' · +' + dMin + ' דק׳' : ''))}</div>`;
 }
 
 /* ================= NATIV SIDEVIEW: what is on your right and left ================= */
@@ -2937,7 +2934,7 @@ function openJourney() {
   $('#sJourney').innerHTML = `<div class="pagehead"><button class="circ glass press" id="jBack" aria-label="חזרה">${ICON.chev.replace('M15 6l-6 6 6 6', 'M9 6l6 6-6 6')}</button></div><h2>המסע שלי</h2>
     ${J.length ? J.map((j, i) => `<article class="jcard glass strong"><div class="jhead"><div><b>${esc(j.to || 'נסיעה')}</b><span>מ${esc(j.from || 'נקודת יציאה')} · ${dfmt(j.t0)}</span></div><button class="circ press" data-jdel="${i}" aria-label="מחיקת הנסיעה" style="width:36px;height:36px;background:var(--fill)">${ICON.x}</button></div>
       ${miniRoute(j.pts)}
-      <div class="jfacts"><span><b>${Math.max(1, Math.round((j.t1 - j.t0) / 60000))}</b>דק׳</span><span><b>${(j.dist / 1000).toFixed(1)}</b>ק״מ</span><span><b>${j.sigs}</b>רמזורים</span><span><b>${j.mode === 'smooth' ? 'חלק' : 'מהיר'}</b>מסלול</span></div>
+      <div class="jfacts"><span><b>${Math.max(1, Math.round((j.t1 - j.t0) / 60000))}</b>דק׳</span><span><b>${(j.dist / 1000).toFixed(1)}</b>ק״מ</span><span><b>${j.sigs}</b>רמזורים</span><span><b>${j.mode === 'smooth' ? 'רגוע' : 'מהיר'}</b>מסלול</span></div>
       ${j.seen.length ? `<div class="jseen"><small>עברתם ליד</small><div class="tags">${j.seen.slice(0, 8).map((s, k) => `<button class="tag" data-js="${i}:${k}">${esc(s.name)}</button>`).join('')}</div></div>` : ''}</article>`).join('')
       + `<button class="link" id="jClear" style="color:var(--bad);margin:8px auto;display:block">מחיקת כל הנסיעות</button>`
       : `<div class="jempty glass strong"><div class="jmapEmpty">${miniRoute([[0, 0], [40, 30], [90, 25], [130, 70], [200, 60]])}</div><b>עוד אין נסיעות שמורות</b><p>בסוף כל נסיעה אפשר לשמור אותה כאן: המסלול, הזמן, והמקומות שעברתם בדרך. הכול נשמר רק בחשבון שלכם.</p><button class="cta press" id="jGo">לאן נוסעים?</button></div>`}`;
@@ -3430,14 +3427,14 @@ function updateBuildingLabels() {
   const pick = [];
   for (const L of BLD_LABELS) {
     const d = Math.hypot(L.x - fx, L.y - fy); if (d > R) continue;
-    if (zoom > 1400 && !L.big) continue;
+    if ((zoom > 1400 || S.mode === 'route') && !L.big) continue;
     pick.push([d - (L.big ? 400 : 0) - L.rest.length * 20, L]);
   }
   pick.sort((a, b) => a[0] - b[0]);
   const used = [];
   let k = 0;
   for (const [, L] of pick) {
-    if (k >= labelPool.length) break;
+    if (k >= (S.mode === 'route' ? 5 : labelPool.length)) break;
     if (used.some(u => Math.hypot(u.x - L.x, u.y - L.y) < zoom * 0.09)) continue; // keep them from piling up
     used.push(L);
     const sp = labelPool[k++], tex = labelTex(L);
@@ -3541,7 +3538,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792520644';
+const APP_VERSION = '1792523227';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
