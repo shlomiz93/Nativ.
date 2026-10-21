@@ -376,6 +376,24 @@ input{font:inherit;color:inherit}
 /* ---------- pages ---------- */
 .page{position:absolute;inset:0;z-index:30;overflow:auto;padding:var(--top) 12px calc(var(--bot) + 92px);background:color-mix(in srgb,var(--map) 45%,transparent);backdrop-filter:blur(34px) saturate(170%);-webkit-backdrop-filter:blur(34px) saturate(170%)}
 .page h2{margin:8px 8px 16px;font-size:32px;font-weight:700;letter-spacing:-.02em}
+
+.prhead{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:26px;margin:6px 0 14px}
+.prhead .av{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:24px;font-weight:700;color:#fff;background:linear-gradient(145deg,#2fd6a6,#0b5a49);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.prhead .av svg{width:28px;height:28px}
+.prhead h3{margin:0;font-size:20px;font-weight:700}.prhead span{color:var(--ink2);font-size:13px}
+.prgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.prtile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:right;padding:16px 14px 14px;border-radius:24px;min-height:136px}
+.prtile .prart{margin-bottom:6px}
+.prtile b{font-size:16px;font-weight:700;color:var(--ink)}
+.prtile span:not(.prart){font-size:12.5px;line-height:1.35;color:var(--ink2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.prart{display:grid;place-items:center;border-radius:16px;flex:none;box-shadow:0 6px 16px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.45);position:relative;overflow:hidden}
+.prart::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28),transparent 55%);pointer-events:none}
+.prart svg{width:78%;height:78%}
+.prrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:22px;text-align:right;margin-bottom:12px}
+.prrow .t{flex:1;display:flex;flex-direction:column}.prrow .t b{font-size:15.5px;color:var(--ink)}.prrow .t span{font-size:12.5px;color:var(--ink2)}
+.prrow .meta svg{width:18px;height:18px;color:var(--mute)}
+.prtitle{display:flex;align-items:center;gap:12px;margin:4px 4px 14px}.prtitle h2{margin:0}
+.prnote{font-size:13px;line-height:1.55;color:var(--ink2);margin:-2px 8px 14px}
 .ph{display:flex;align-items:center;gap:14px;margin:4px 8px 18px}
 .ph .av{width:60px;height:60px;border-radius:50%;font-size:24px;font-weight:700;display:grid;place-items:center}
 .ph h3{margin:0;font-size:21px;font-weight:700}
@@ -2522,43 +2540,85 @@ function openPlaces() {
   show('places');
 }
 
-/* ---------- account ---------- */
-function openProfile() {
-  const a = Store.data.account || {};
-  const lanesPct = Math.round(100 * WAYS.filter(w => w.lanesKnown).length / WAYS.length);
-  $('#sProfile').innerHTML = `<div class="pagehead"><button class="circ glass press" id="prBack" aria-label="חזרה">${ICON.chev.replace('M15 6l-6 6 6 6', 'M9 6l6 6-6 6')}</button></div><h2>חשבון</h2>
-    <div class="ph"><span class="av glass strong">${avatarHTML()}</span><div><h3>${a.guest || !a.name ? 'אורח' : esc(a.name)}</h3><span>${a.contact ? '<bdi>' + esc(a.contact) + '</bdi> · ' : ''}${Store.where === 'account' ? 'נשמר בחשבון שלך' : 'נשמר במכשיר הזה'}</span></div></div>
-    ${vehicleGroupHTML()}
-    <div class="sec"><span class="eyebrow">מראה המפה</span><span class="tone-chip"><i></i>${esc(TONE_NAMES[(Store.data.prefs.tone || 'auto')])}</span></div><div class="group glass strong" style="padding:10px 12px"><div class="psub" style="margin-bottom:4px">באוטומטי, הצבעים, האור והשמיים עוקבים אחרי מיקום השמש האמיתי בשמי המרכז — בוקר, צהריים, שקיעה ולילה.</div><div class="tonepick"><button data-tone="auto" style="background:linear-gradient(135deg,#3d8cff,#ffc58e 45%,#ff5d8f 70%,#141a3c)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'auto'}">${TONE_NAMES.auto}</button><button data-tone="morning" style="background:linear-gradient(160deg,#5aa2ff,#dcefff)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'morning'}">${TONE_NAMES.morning}</button><button data-tone="noon" style="background:linear-gradient(160deg,#3d8cff,#cfe4ff)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'noon'}">${TONE_NAMES.noon}</button><button data-tone="golden" style="background:linear-gradient(160deg,#6f93d8,#ffc58e)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'golden'}">${TONE_NAMES.golden}</button><button data-tone="dusk" style="background:linear-gradient(160deg,#23285e,#ff7a7a)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'dusk'}">${TONE_NAMES.dusk}</button><button data-tone="night" style="background:linear-gradient(160deg,#050816,#1a2250)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'night'}">${TONE_NAMES.night}</button></div></div>
-    <div class="group glass strong"><div class="list"><label class="li" style="cursor:pointer"><span class="t"><b>הנחיות קוליות</b><span>הכרזה לפני כל פנייה</span></span><input type="checkbox" class="switch" id="pVoice" ${S.voice ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>הצעת חניה לפני היעד</b><span>חניונים קרובים כשנשארו 600 מטר</span></span><input type="checkbox" class="switch" id="pPark" ${Store.data.prefs.park !== false ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>דיווח בקול: "נתיב…"</b><span>בזמן נסיעה, אומרים "נתיב" ואז מה ראיתם. דורש מיקרופון</span></span><input type="checkbox" class="switch" id="pWake" ${Store.data.prefs.wake ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>המלצת מהירות לגל ירוק</b><span>ניסיוני · לעולם לא מעל המהירות המותרת</span></span><input type="checkbox" class="switch" id="pGlosa" ${Store.data.prefs.glosa ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>שמירת נסיעות ב"המסע שלי"</b><span>אוטומטית בסוף כל נסיעה. כבוי: שואלים בכל פעם</span></span><input type="checkbox" class="switch" id="pJourney" ${Store.data.prefs.journey ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>שמות על מבנים</b><span>שם המקום והחנויות שבתוכו מעל כל מבנה</span></span><input type="checkbox" class="switch" id="pLabels" ${Store.data.prefs.labels !== false ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>מה יש בצדי הדרך</b><span>שם קצר של מקום מימין ומשמאל בזמן נסיעה</span></span><input type="checkbox" class="switch" id="pSide" ${Store.data.prefs.side !== false ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>תצוגה מקדימה: גשם</b><span>מראה איך המפה וההתראות נראים בגשם</span></span><input type="checkbox" class="switch" id="pRain" ${WX.preview ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>שמירת היסטוריית חיפושים</b><span>להשלמה אוטומטית בזמן הקלדה</span></span><input type="checkbox" class="switch" id="pHist" ${Store.data.prefs.history !== false ? 'checked' : ''}></label></div></div>
-    <div class="group glass strong"><h4>תנועה בזמן אמת</h4><div class="info" style="margin-bottom:8px">עם מפתח של TomTom (חינמי עד 2,500 בדיקות ביום) המסלול מתחשב בעומסים בזמן אמת. בלי מפתח, זמני הנסיעה מחושבים לפי מהירויות רגילות.</div><div class="ttrow"><input id="pTT" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" placeholder="TomTom API key" value="${esc(Store.data.prefs.ttKey || '')}" style="padding:12px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--fill2, rgba(127,127,127,.1));color:var(--ink);font:500 15px var(--f, inherit)"><button class="press" id="pTTgo">בדיקה</button></div><div class="ttstat" id="pTTst">${Store.data.prefs.ttKey ? (Store.data.prefs.ttOk ? '✓ המפתח נבדק ועובד' : 'שמור. הקישו "בדיקה" כדי לוודא שהוא עובד') : 'אין מפתח, התנועה בזמן אמת כבויה'}</div></div>
-    <div class="group glass strong"><h4>רמזורים</h4><div class="info"><b>הספירה לאחור עובדת כרגע על תזמון מדומה.</b> אין בישראל ממשק פתוח לזמני רמזורים. פנינו לנתיבי איילון, לעיריות בני ברק וגבעתיים ולמשרד התחבורה, ומקור אמיתי יוצג באותה טבעת ברגע שיגיע.</div></div>
-    <div class="group glass strong"><h4>המפה</h4><div class="stats"><div><b>${(WAYS.length / 1000).toFixed(1)}K</b><span>קטעי כביש</span></div><div><b>${SIG.size.toLocaleString('he-IL')}</b><span>רמזורים</span></div><div><b>${(SIGNS.length / 1000).toFixed(1)}K</b><span>תמרורים</span></div><div><b>${(ADDR.length / 1000).toFixed(1)}K</b><span>כתובות</span></div><div><b>${(POIS.length / 1000).toFixed(1)}K</b><span>מקומות</span></div><div><b>${(bldInfo.count / 1000).toFixed(1)}K</b><span>מבנים</span></div></div><div class="info">מקור: OpenStreetMap. מספר הנתיבים רשום ל־${lanesPct}% מהכבישים, ובשאר הוא משוער לפי סוג הכביש. כתובת שחסרה במפה מסומנת "מיקום משוער".</div></div>
- <div class="group glass strong"><h4>פרטיות ומידע משפטי</h4><div class="list">${[['data', 'הנתונים שלי'], ['terms', 'תנאי שימוש'], ['privacy', 'מדיניות פרטיות'], ['safety', 'בטיחות בנהיגה'], ['access', 'הצהרת נגישות'], ['licenses', 'מקורות ורישיונות']].map(([k, he]) => `<button class="li" data-lg="${k}"><span class="t"><b>${he}</b></span><span class="meta">${ICON.chev}</span></button>`).join('')}<button class="li" id="pDel"><span class="t"><b style="color:var(--bad)">מחיקת חשבון ונתונים</b><span>מוחק הכל לצמיתות</span></span></button></div></div>
-    <button class="li press" id="pOut" style="justify-content:center;color:var(--bad);font-weight:600;background:var(--glass-strong);border-radius:999px;height:52px">${a.guest ? 'יציאה ממצב אורח' : 'התנתקות'}</button>`;
-  $('#prBack').onclick = goBack;
+/* ---------- account: a calm home page of categories, each opens its own page ---------- */
+const PR_ART = { // small illustrations: a gradient tile with a drawn scene
+  car: ['#2fd6a6', '#0e7c66', '<path d="M10 33l3-8c.6-1.6 2-2.6 3.7-2.6h14.6c1.7 0 3.1 1 3.7 2.6l3 8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><rect x="7" y="32" width="34" height="8" rx="3" fill="#fff"/><circle cx="15" cy="40.5" r="3.4" fill="#0b3b31" stroke="#fff" stroke-width="2"/><circle cx="33" cy="40.5" r="3.4" fill="#0b3b31" stroke="#fff" stroke-width="2"/><path d="M17 25.5h14" stroke="#bff5e6" stroke-width="2" stroke-linecap="round"/>'],
+  look: ['#ffb36b', '#d9487a', '<circle cx="30" cy="20" r="7" fill="#fff4d6"/><path d="M6 40c6-7 10-10 15-10s9 4 12 7 6 3 9 1v6H6z" fill="#fff" opacity=".9"/><path d="M6 44c7-5 13-7 19-5s11 3 17 0v4H6z" fill="#ffe1ea" opacity=".85"/>'],
+  drive: ['#6c8cff', '#3a3fb8', '<path d="M12 21v10h7l8 6V15l-8 6z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M31 19c2.4 2.6 2.4 7.4 0 10M35 15c4.6 4.8 4.6 13.2 0 18" fill="none" stroke="#dfe4ff" stroke-width="2.4" stroke-linecap="round"/>'],
+  map: ['#7fd36b', '#1f8f5c', '<path d="M24 12l15 7-15 7-15-7z" fill="#fff"/><path d="M9 25l15 7 15-7" fill="none" stroke="#eafbe4" stroke-width="2.4" stroke-linejoin="round"/><path d="M9 31l15 7 15-7" fill="none" stroke="#eafbe4" stroke-width="2.4" stroke-linejoin="round" opacity=".7"/>'],
+  traffic: ['#ffcf4a', '#f0652a', '<rect x="18" y="9" width="12" height="30" rx="6" fill="#fff"/><circle cx="24" cy="16" r="3.2" fill="#ff4d5e"/><circle cx="24" cy="24" r="3.2" fill="#ffb11f"/><circle cx="24" cy="32" r="3.2" fill="#2fd6a6"/><path d="M24 39v4" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>'],
+  privacy: ['#8fa3b8', '#3c4a5c', '<path d="M24 9l12 4.5v9c0 8-5.2 13.4-12 16.5-6.8-3.1-12-8.5-12-16.5v-9z" fill="#fff"/><rect x="19" y="22" width="10" height="8" rx="1.8" fill="#3c4a5c"/><path d="M21 22v-2.4a3 3 0 016 0V22" fill="none" stroke="#3c4a5c" stroke-width="2"/>'],
+  about: ['#2fd6a6', '#07130f', '<path d="M14 36V22l10-9 10 9v14" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><path d="M20 36v-7h8v7" fill="none" stroke="#bff5e6" stroke-width="2.4"/>'],
+};
+const prArt = (k, size = 52) => { const [a, b, g] = PR_ART[k]; return `<span class="prart" style="width:${size}px;height:${size}px;background:linear-gradient(145deg,${a},${b})"><svg viewBox="0 0 48 48">${g}</svg></span>`; };
+const swRow = (id, title, sub, on) => `<label class="li" style="cursor:pointer"><span class="t"><b>${title}</b><span>${sub}</span></span><input type="checkbox" class="switch" id="${id}" ${on ? 'checked' : ''}></label>`;
+function prSummary(k) {
+  const P = Store.data.prefs;
+  if (k === 'car') { const t = MY_TYPES.find(v => v.k === (P.carType || 'sedan')), c = MY_COLORS.find(([, x]) => x === egoColor()); return (t ? t.he : 'פרטית') + (c ? ' · ' + c[0] : ''); }
+  if (k === 'look') return TONE_NAMES[P.tone || 'auto'];
+  if (k === 'drive') return (S.voice ? 'הנחיות קוליות פועלות' : 'הנחיות קוליות כבויות') + (P.park !== false ? ' · הצעת חניה' : '');
+  if (k === 'map') { const n = [P.labels !== false && 'שמות על מבנים', P.side !== false && 'צדי הדרך'].filter(Boolean); return n.length ? n.join(' · ') : 'תצוגה נקייה'; }
+  if (k === 'traffic') return P.ttKey ? (P.ttOk ? '✓ מחובר ועובד' : 'מפתח שמור, לא נבדק') : 'כבוי · צריך מפתח';
+  if (k === 'privacy') return 'הנתונים שלך, תנאים ומחיקה';
+  return '';
+}
+const PR_CATS = [['car', 'הרכב שלי'], ['look', 'מראה המפה'], ['drive', 'ניווט וקול'], ['map', 'מה רואים במפה'], ['traffic', 'תנועה בזמן אמת'], ['privacy', 'פרטיות ונתונים']];
+const backBtn = id => `<div class="pagehead"><button class="circ glass press" id="${id}" aria-label="חזרה">${ICON.chev.replace('M15 6l-6 6 6 6', 'M9 6l6 6-6 6')}</button></div>`;
+function openProfile(sec) {
+  const a = Store.data.account || {}, P = Store.data.prefs, el = $('#sProfile');
+  if (!sec) {
+    el.innerHTML = `${backBtn('prBack')}<h2>חשבון</h2>
+    <div class="prhead glass strong"><span class="av">${avatarHTML()}</span><div><h3>${a.guest || !a.name ? 'אורח' : esc(a.name)}</h3><span>${a.contact ? '<bdi>' + esc(a.contact) + '</bdi> · ' : ''}${Store.where === 'account' ? 'נשמר בחשבון שלך' : 'נשמר במכשיר הזה'}</span></div></div>
+    <div class="prgrid">${PR_CATS.map(([k, he]) => `<button class="prtile glass strong press" data-pr="${k}">${prArt(k)}<b>${he}</b><span>${esc(prSummary(k))}</span></button>`).join('')}</div>
+    <button class="prrow glass strong press" data-pr="about">${prArt('about', 40)}<span class="t"><b>על nativ. והמפה</b><span>מקורות, רמזורים ומספרים</span></span><span class="meta">${ICON.chev}</span></button>
+    <button class="li press" id="pOut" style="justify-content:center;color:var(--bad);font-weight:600;background:var(--glass-strong);border-radius:999px;height:52px;margin-top:6px">${a.guest ? 'יציאה ממצב אורח' : 'התנתקות'}</button>`;
+    $('#prBack').onclick = goBack;
+    $$('#sProfile [data-pr]').forEach(b => b.onclick = () => { openProfile(b.dataset.pr); $('#sProfile').scrollTop = 0; });
+    $('#pOut').onclick = () => { Store.data.account = null; Store.save(); authState = { tab: 'login', step: 'form', contact: a.contact || '', name: '' }; renderAuth(); show('auth'); cam.mode = 'orbit'; };
+    if (S.mode !== 'profile') show('profile');
+    return;
+  }
+  const title = sec === 'about' ? 'על nativ. והמפה' : PR_CATS.find(c => c[0] === sec)[1];
+  let body = '';
+  if (sec === 'car') body = vehicleGroupHTML().replace(/^<div class="sec">.*?<\/div>/, '') + '<div class="prnote">הרכב והצבע שבחרתם מופיעים על המפה ובזמן נסיעה.</div>';
+  if (sec === 'look') { const cur = P.tone || 'auto', T = [['auto', 'linear-gradient(135deg,#3d8cff,#ffc58e 45%,#ff5d8f 70%,#141a3c)'], ['morning', 'linear-gradient(160deg,#5aa2ff,#dcefff)'], ['noon', 'linear-gradient(160deg,#3d8cff,#cfe4ff)'], ['golden', 'linear-gradient(160deg,#6f93d8,#ffc58e)'], ['dusk', 'linear-gradient(160deg,#23285e,#ff7a7a)'], ['night', 'linear-gradient(160deg,#050816,#1a2250)']];
+    body = `<div class="group glass strong" style="padding:12px"><div class="tonepick">${T.map(([k, g]) => `<button data-tone="${k}" style="background:${g}" aria-pressed="${cur === k}">${TONE_NAMES[k]}</button>`).join('')}</div></div><div class="prnote">באוטומטי, הצבעים, האור והשמיים עוקבים אחרי השמש האמיתית: בוקר, צהריים, שקיעה ולילה.</div>`; }
+  if (sec === 'drive') body = `<div class="group glass strong"><div class="list">${swRow('pVoice', 'הנחיות קוליות', 'הכרזה לפני כל פנייה', S.voice)}${swRow('pPark', 'הצעת חניה לפני היעד', 'חניונים קרובים כשנשארו 600 מטר', P.park !== false)}${swRow('pWake', 'דיווח בקול: "נתיב…"', 'בנסיעה אומרים "נתיב" ואז מה ראיתם', P.wake)}${swRow('pGlosa', 'המלצת מהירות לגל ירוק', 'ניסיוני · לעולם לא מעל המהירות המותרת', P.glosa)}</div></div>`;
+  if (sec === 'map') body = `<div class="group glass strong"><div class="list">${swRow('pLabels', 'שמות על מבנים', 'שם המקום והחנויות שבתוכו', P.labels !== false)}${swRow('pSide', 'מה יש בצדי הדרך', 'שם קצר של מקום מימין ומשמאל בנסיעה', P.side !== false)}${swRow('pRain', 'תצוגה מקדימה: גשם', 'איך המפה וההתראות נראים בגשם', WX.preview)}</div></div>`;
+  if (sec === 'traffic') body = `<div class="group glass strong" style="padding:14px 16px"><div class="ttrow"><input id="pTT" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" placeholder="TomTom API key" value="${esc(P.ttKey || '')}" style="padding:12px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--fill2, rgba(127,127,127,.1));color:var(--ink);font:500 15px var(--f, inherit)"><button class="press" id="pTTgo">בדיקה</button></div><div class="ttstat" id="pTTst">${P.ttKey ? (P.ttOk ? '✓ המפתח נבדק ועובד' : 'שמור. הקישו "בדיקה" כדי לוודא שהוא עובד') : 'אין מפתח, התנועה בזמן אמת כבויה'}</div></div><div class="prnote">עם מפתח חינמי של TomTom (עד 2,500 בדיקות ביום) המסלול והזמן מתחשבים בעומסים עכשיו. המפתח נשמר בטלפון בלבד.</div>`;
+  if (sec === 'privacy') body = `<div class="group glass strong"><div class="list">${swRow('pHist', 'שמירת היסטוריית חיפושים', 'להשלמה אוטומטית בזמן הקלדה', P.history !== false)}${swRow('pJourney', 'שמירת נסיעות ב"המסע שלי"', 'אוטומטית בסוף נסיעה. כבוי: שואלים כל פעם', P.journey)}</div></div>
+    <div class="group glass strong"><div class="list">${[['data', 'הנתונים שלי'], ['terms', 'תנאי שימוש'], ['privacy', 'מדיניות פרטיות'], ['safety', 'בטיחות בנהיגה'], ['access', 'הצהרת נגישות']].map(([k, he]) => `<button class="li" data-lg="${k}"><span class="t"><b>${he}</b></span><span class="meta">${ICON.chev}</span></button>`).join('')}</div></div>
+    <div class="group glass strong"><div class="list"><button class="li" id="pDel"><span class="t"><b style="color:var(--bad)">מחיקת חשבון ונתונים</b><span>מוחק הכל לצמיתות</span></span></button></div></div>`;
+  if (sec === 'about') { const lanesPct = Math.round(100 * WAYS.filter(w => w.lanesKnown).length / Math.max(1, WAYS.length));
+    body = `<div class="group glass strong"><div class="stats"><div><b>${(WAYS.length / 1000).toFixed(1)}K</b><span>קטעי כביש</span></div><div><b>${SIG.size.toLocaleString('he-IL')}</b><span>רמזורים</span></div><div><b>${(SIGNS.length / 1000).toFixed(1)}K</b><span>תמרורים</span></div><div><b>${(ADDR.length / 1000).toFixed(1)}K</b><span>כתובות</span></div><div><b>${(POIS.length / 1000).toFixed(1)}K</b><span>מקומות</span></div><div><b>${(bldInfo.count / 1000).toFixed(1)}K</b><span>מבנים</span></div></div><div class="info">מספרים לאזור שנטען כרגע. מקור: OpenStreetMap. מספר הנתיבים רשום ל־${lanesPct}% מהכבישים, ובשאר הוא משוער.</div></div>
+    <div class="group glass strong"><h4>רמזורים</h4><div class="info">הספירה לאחור עובדת כרגע על תזמון משוער. ביקשנו את הזמנים האמיתיים מנתיבי איילון ומהעיריות, והם יוצגו ברגע שיגיעו.</div></div>
+    <div class="group glass strong"><div class="list"><button class="li" data-lg="licenses"><span class="t"><b>מקורות ורישיונות</b></span><span class="meta">${ICON.chev}</span></button></div></div>`; }
+  el.innerHTML = `${backBtn('prBack')}<div class="prtitle">${prArt(sec, 46)}<h2>${title}</h2></div>${body}`;
+  $('#prBack').onclick = () => openProfile();
+  const on = (id, f) => { const e = $('#' + id); if (e) e.onchange = f; };
   $$('#sProfile [data-lg]').forEach(b => b.onclick = () => b.dataset.lg === 'data' ? openMyData() : openLegal(b.dataset.lg));
-  $('#pDel').onclick = deleteAccount;
-  $$('#sProfile [data-tone]').forEach(b => b.onclick = () => { Store.data.prefs.tone = b.dataset.tone; Store.save(); applyTone(true); openProfile(); });
-  bindVehicleGroup('#sProfile');
-  $('#pWake').onchange = e => { Store.data.prefs.wake = e.target.checked; Store.save(); if (e.target.checked && !(window.SpeechRecognition || window.webkitSpeechRecognition)) toast('הדפדפן הזה לא תומך בזיהוי דיבור. באפליקציה בטלפון זה יעבוד', 3600); };
-  $('#pGlosa').onchange = e => { Store.data.prefs.glosa = e.target.checked; Store.save(); };
-  $('#pJourney').onchange = e => { Store.data.prefs.journey = e.target.checked; Store.save(); };
-  $('#pLabels').onchange = e => { Store.data.prefs.labels = e.target.checked; Store.save(); };
-  $('#pSide').onchange = e => { Store.data.prefs.side = e.target.checked; Store.save(); };
-  $('#pRain').onchange = e => setRainPreview(e.target.checked);
-  const ttSave = () => { const v = $('#pTT').value.trim(); if (v !== (Store.data.prefs.ttKey || '')) { Store.data.prefs.ttKey = v; Store.data.prefs.ttOk = false; Store.save(); ttKeep(v); } return v; };
-  $('#pTT').onchange = ttSave; $('#pTT').oninput = ttSave; $('#pTT').onblur = () => { ttSave(); unshift(); };
-  $('#pTTgo').onclick = async () => { const st = $('#pTTst'), v = ttSave(); $('#pTT').blur(); unshift();
-    if (!v) { st.className = 'ttstat'; st.textContent = 'אין מפתח, התנועה בזמן אמת כבויה'; return; }
-    st.className = 'ttstat'; st.textContent = 'בודקים מול TomTom…';
-    const res = await trafficTest(v); Store.data.prefs.ttOk = res.ok; Store.save();
-    st.className = 'ttstat ' + (res.ok ? 'ok' : 'bad'); st.textContent = res.msg; toast(res.ok ? 'המפתח עובד ✓' : 'המפתח לא עובד', 2200); };
-  $('#pHist').onchange = e => { Store.data.prefs.history = e.target.checked; if (!e.target.checked) Store.data.recent = []; Store.save(); };
-  $('#pVoice').onchange = e => { S.voice = e.target.checked; Store.data.prefs.voice = S.voice; Store.save(); };
-  $('#pPark').onchange = e => { Store.data.prefs.park = e.target.checked; Store.save(); };
-  $('#pOut').onclick = () => { Store.data.account = null; Store.save(); authState = { tab: 'login', step: 'form', contact: a.contact || '', name: '' }; renderAuth(); show('auth'); cam.mode = 'orbit'; };
-  show('profile');
+  if ($('#pDel')) $('#pDel').onclick = deleteAccount;
+  $$('#sProfile [data-tone]').forEach(b => b.onclick = () => { Store.data.prefs.tone = b.dataset.tone; Store.save(); applyTone(true); openProfile('look'); });
+  if (sec === 'car') bindVehicleGroup('#sProfile');
+  on('pWake', e => { P.wake = e.target.checked; Store.save(); if (e.target.checked && !(window.SpeechRecognition || window.webkitSpeechRecognition)) toast('הדפדפן הזה לא תומך בזיהוי דיבור', 3600); });
+  on('pGlosa', e => { P.glosa = e.target.checked; Store.save(); });
+  on('pJourney', e => { P.journey = e.target.checked; Store.save(); });
+  on('pLabels', e => { P.labels = e.target.checked; Store.save(); });
+  on('pSide', e => { P.side = e.target.checked; Store.save(); });
+  on('pRain', e => setRainPreview(e.target.checked));
+  on('pHist', e => { P.history = e.target.checked; if (!e.target.checked) Store.data.recent = []; Store.save(); });
+  on('pVoice', e => { S.voice = e.target.checked; P.voice = S.voice; Store.save(); });
+  on('pPark', e => { P.park = e.target.checked; Store.save(); });
+  if ($('#pTT')) {
+    const ttSave = () => { const v = $('#pTT').value.trim(); if (v !== (P.ttKey || '')) { P.ttKey = v; P.ttOk = false; Store.save(); ttKeep(v); } return v; };
+    $('#pTT').onchange = ttSave; $('#pTT').oninput = ttSave; $('#pTT').onblur = () => { ttSave(); unshift(); };
+    $('#pTTgo').onclick = async () => { const st = $('#pTTst'), v = ttSave(); $('#pTT').blur(); unshift();
+      if (!v) { st.className = 'ttstat'; st.textContent = 'אין מפתח, התנועה בזמן אמת כבויה'; return; }
+      st.className = 'ttstat'; st.textContent = 'בודקים מול TomTom…';
+      const res = await trafficTest(v); P.ttOk = res.ok; Store.save();
+      st.className = 'ttstat ' + (res.ok ? 'ok' : 'bad'); st.textContent = res.msg; toast(res.ok ? 'המפתח עובד ✓' : 'המפתח לא עובד', 2200); };
+  }
+  if (S.mode !== 'profile') show('profile');
 }
 
 /* ================= MARKERS ON MAP ================= */
@@ -4238,7 +4298,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792582362';
+const APP_VERSION = '1792583014';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
