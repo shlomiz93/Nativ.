@@ -244,6 +244,18 @@ input{font:inherit;color:inherit}
 #topL .stack button{width:48px;height:48px;display:grid;place-items:center}
 #topL .stack button + button{box-shadow:0 -1px 0 var(--hair)}
 #topL svg{width:21px;height:21px}
+.vmic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--accent);background:var(--fill);transition:background .2s,color .2s}
+.vmic svg{width:20px!important;height:20px!important;color:inherit!important}
+.vmic.rec{background:var(--accent);color:#fff;animation:vpulse 1.2s ease-in-out infinite}
+@keyframes vpulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent)}50%{box-shadow:0 0 0 10px transparent}}
+#sOpen #sMic{flex:none;width:40px;height:40px;margin-inline-start:-4px}#sOpen span{white-space:nowrap}
+#qMic{position:absolute;left:7px;top:50%;transform:translateY(-50%);z-index:2}
+#sSearch .sfield .accept{left:54px}
+#sSearch .sfield input,#sSearch .sfield .ghost{padding-left:118px}
+#compass{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:var(--ink)}
+#compass svg{width:34px!important;height:34px!important}
+#compass.on{background:color-mix(in srgb,var(--accent) 22%,transparent);box-shadow:inset 0 0 0 2px var(--accent)}
+
 #avatarBtn{position:absolute;top:var(--top);right:14px;font-weight:700;font-size:18px}
 #where{position:absolute;top:calc(var(--top) + 6px);right:72px;left:76px;display:flex;justify-content:center;pointer-events:none}
 #where>span{display:flex;align-items:center;gap:7px;cursor:pointer;padding:8px 14px;border-radius:999px;font-size:13.5px;font-weight:600;max-width:100%}
@@ -4226,7 +4238,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792581179';
+const APP_VERSION = '1792581629';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -4257,6 +4269,160 @@ if (SITE) setTimeout(async () => {
   const pts = [[egoX, egoY]]; for (const k of ['home', 'work']) { const p = Store.data[k]; if (p) pts.push([p.x, p.y]); }
   for (const [x, y] of pts) await prefetchAround(x, y, 12000);
 }, 25000);
+
+/* ================= VOICE SEARCH · SHARE LOCATION · COMPASS ================= */
+
+/* ---------- voice search: say the address ---------- */
+const VSRC = window.SpeechRecognition || window.webkitSpeechRecognition;
+let vRec = null;
+function voiceFallback(msg) {
+  openSearch(); setTimeout(() => $('#q').focus(), 80);
+  toast(msg || 'אפשר ללחוץ על המיקרופון במקלדת ולהגיד את הכתובת', 4200);
+}
+function voiceStop() { if (vRec) { const r = vRec; vRec = null; try { r.stop(); } catch (e) { } } $$('.vmic').forEach(b => b.classList.remove('rec')); }
+function voiceSearch() {
+  if (vRec) { voiceStop(); return; }
+  if (!VSRC) { voiceFallback(); return; }
+  if (S.mode !== 'search') { show('search'); $('#q').value = ''; renderResults(); }
+  let got = '', done = false;
+  try {
+    const r = new VSRC(); vRec = r;
+    r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 1; r.continuous = false;
+    r.onresult = ev => {
+      let t = ''; for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
+      got = t.replace(/[.?!]+$/, '').trim(); const q = $('#q'); q.value = got; renderResults();
+    };
+    r.onerror = e => {
+      done = true; voiceStop();
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') voiceFallback('אין גישה למיקרופון. אפשר לאשר בהגדרות, או ללחוץ על המיקרופון במקלדת');
+      else if (e.error === 'no-speech') toast('לא שמענו כלום. נסו שוב', 2400);
+      else voiceFallback();
+    };
+    r.onend = () => {
+      const was = vRec; voiceStop(); if (done) return;
+      if (got) { toast('מחפשים: ' + got, 1800); const top = curResults && curResults[0]; if (top && curResults.length === 1) pickResult(top); }
+      else if (was) toast('לא שמענו כלום. נסו שוב', 2400);
+    };
+    r.start(); $$('.vmic').forEach(b => b.classList.add('rec'));
+    toast('מקשיבים… אמרו כתובת או מקום', 2600);
+  } catch (e) { voiceStop(); voiceFallback(); }
+}
+const MIC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/></svg>';
+{
+  const m = document.createElement('span'); m.id = 'sMic'; m.className = 'vmic'; m.setAttribute('role', 'button'); m.setAttribute('aria-label', 'חיפוש בקול'); m.innerHTML = MIC_SVG;
+  const sp = $('#sOpen span'); sp.after(m);
+  m.addEventListener('click', e => { e.stopPropagation(); voiceSearch(); });
+  const b = document.createElement('button'); b.id = 'qMic'; b.className = 'vmic press'; b.setAttribute('aria-label', 'חיפוש בקול'); b.innerHTML = MIC_SVG;
+  $('.sfield').appendChild(b); b.onclick = e => { e.preventDefault(); $('#q').blur(); voiceSearch(); };
+  $('#sBack').addEventListener('click', voiceStop);
+}
+
+/* ---------- share my location ---------- */
+const SHARE_SITE = 'https://shlomiz93.github.io/Nativ./';
+function myLatLon() {
+  const f = typeof LIVE !== 'undefined' && LIVE.fix && Date.now() - LIVE.fix.rt < 120000 ? LIVE.fix : null;
+  const x = f ? f.x : egoX, y = f ? f.y : egoY;
+  return { lat: LAT0 + y / KY, lon: LON0 + x / KX, live: !!f };
+}
+async function shareLocation() {
+  const { lat, lon, live } = myLatLon(), la = lat.toFixed(5), lo = lon.toFixed(5);
+  let text, n = '';
+  if (S.driving && S.route && S.dest) {
+    const min = +($('#remT') && $('#remT').textContent) || 0;
+    const at = new Date(Date.now() + min * 60000).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    text = `אני בדרך ל${S.dest.label || 'יעד'}, אגיע בערך ב-${at}.`;
+    n = 'בדרך ל' + (S.dest.label || 'יעד');
+  } else { text = 'זה המיקום שלי עכשיו.'; n = 'המיקום של ' + ((Store.data.account && Store.data.account.name) || 'חבר'); }
+  if (!live) text += ' (לפי המפה, לא GPS)';
+  const url = `${SHARE_SITE}?at=${la},${lo}&n=${encodeURIComponent(n)}`;
+  const full = `${text}\nבנתיב: ${url}\nבגוגל מפות: https://maps.google.com/?q=${la},${lo}`;
+  try {
+    if (navigator.share) { await navigator.share({ title: 'nativ. · המיקום שלי', text: full }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(full); toast('הקישור הועתק. אפשר להדביק בוואטסאפ', 2600); }
+  catch (e) { toast('לא הצלחנו לשתף מהדפדפן הזה', 2400); }
+}
+const SHARE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7.5 7.5L12 3l4.5 4.5"/><path d="M5 11v8a2 2 0 002 2h10a2 2 0 002-2v-8"/></svg>';
+{
+  const b = document.createElement('button'); b.id = 'fabShare'; b.className = 'press'; b.setAttribute('aria-label', 'שיתוף מיקום'); b.innerHTML = SHARE_SVG;
+  $('#topL .stack').appendChild(b); b.onclick = shareLocation;
+  const nb = document.createElement('button'); nb.id = 'navShare'; nb.className = 'circ glass press'; nb.setAttribute('aria-label', 'שיתוף מיקום והגעה'); nb.innerHTML = SHARE_SVG;
+  const nf = $('#navFabs'); if (nf) { nf.appendChild(nb); nb.onclick = shareLocation; }
+}
+// a shared location link opens straight on that spot
+(function openSharedLink() {
+  let at; try { at = new URLSearchParams(location.search).get('at'); } catch (e) { }
+  if (!at) return;
+  const [la, lo] = at.split(',').map(Number); if (!isFinite(la) || !isFinite(lo)) return;
+  const n = new URLSearchParams(location.search).get('n') || 'מיקום ששותף איתך';
+  const [x, y] = ll(la, lo);
+  try { history.replaceState(null, '', location.pathname); } catch (e) { }
+  if (!inMap(x, y)) { setTimeout(() => toast('המיקום ששותף נמצא מחוץ למפה', 3000), 3000); return; }
+  let tries = 0;
+  const go = () => { if (S.mode === 'home') pickResult({ kind: 'pin', label: n, sub: 'מיקום ששותף איתך', x, y }); else if (tries++ < 40) setTimeout(go, 500); };
+  setTimeout(go, 1500);
+})();
+
+/* ---------- compass: the needle always points to real north ---------- */
+const COMP = { follow: false, head: null, lastHead: 0 };
+{
+  const b = document.createElement('button'); b.id = 'compass'; b.className = 'glass press'; b.setAttribute('aria-label', 'מצפן: לחיצה מיישרת צפונה, לחיצה נוספת מסובבת את המפה לפי הטלפון');
+  b.innerHTML = '<svg viewBox="0 0 40 40"><g id="cNeedle"><path d="M20 5l5 15h-10z" fill="#ff4d5e"/><path d="M20 35l-5-15h10z" fill="currentColor" opacity=".35"/><circle cx="20" cy="20" r="2.2" fill="var(--glassBg,#fff)"/></g></svg>';
+  $('#topL').appendChild(b);
+}
+function camBearing() { // where the camera looks, in degrees clockwise from north
+  const dx = camLook.x - camPos.x, dy = -(camLook.z - camPos.z);
+  if (Math.hypot(dx, dy) < 1e-3) return cam.yaw * 180 / Math.PI;
+  return Math.atan2(dx, dy) * 180 / Math.PI;
+}
+function compassTick() {
+  requestAnimationFrame(compassTick);
+  const b = $('#compass'); if (!b || b.offsetParent === null) return;
+  const br = camBearing();
+  $('#cNeedle').setAttribute('transform', `rotate(${(-br).toFixed(1)} 20 20)`);
+  if (COMP.follow && COMP.head != null && !S.driving) {
+    const want = COMP.head * Math.PI / 180, cur = cam.tyaw; cam.tyaw = cur + Math.atan2(Math.sin(want - cur), Math.cos(want - cur));
+    if (!(typeof liveActive === 'function' && liveActive() && LIVE.fix.spd > 1.5)) egoH = Math.PI / 2 - want;
+    cam.tf = { x: egoX, y: egoY };
+  }
+}
+requestAnimationFrame(compassTick);
+function onOrient(e) {
+  let h = null;
+  if (e.webkitCompassHeading != null && !isNaN(e.webkitCompassHeading)) h = e.webkitCompassHeading;
+  else if (e.absolute && e.alpha != null) h = 360 - e.alpha;
+  if (h == null) return;
+  const so = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+  h = (h + so + 360) % 360;
+  COMP.head = COMP.head == null ? h : COMP.head + ((((h - COMP.head) % 360) + 540) % 360 - 180) * 0.35; COMP.lastHead = Date.now();
+}
+let orientOn = false;
+async function startOrient() {
+  if (orientOn) return true;
+  try {
+    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const p = await DeviceOrientationEvent.requestPermission(); if (p !== 'granted') return false;
+    }
+    if ('ondeviceorientationabsolute' in window) addEventListener('deviceorientationabsolute', onOrient);
+    addEventListener('deviceorientation', onOrient);
+    orientOn = true; return true;
+  } catch (e) { return false; }
+}
+function setFollow(on) {
+  COMP.follow = on; $('#compass').classList.toggle('on', on);
+  if (on) { cam.mode = 'explore'; cam.tf = { x: egoX, y: egoY }; if (cam.tdist > 700) cam.tdist = 520; }
+}
+$('#compass').onclick = async () => {
+  if (COMP.follow) { setFollow(false); cam.tyaw = Math.round(cam.yaw / (2 * Math.PI)) * 2 * Math.PI; toast('המפה מיושרת לצפון', 1600); return; }
+  const br = ((camBearing() % 360) + 360) % 360, off = Math.min(br, 360 - br);
+  if (off > 4) { if (cam.mode === 'orbit') { cam.mode = 'explore'; cam.tf = { x: egoX, y: egoY }; } cam.tyaw = Math.round(cam.yaw / (2 * Math.PI)) * 2 * Math.PI; toast('המפה מיושרת לצפון. לחיצה נוספת: המפה תסתובב לפי הטלפון', 2600); return; }
+  const ok = await startOrient();
+  if (!ok) { toast('אין גישה למצפן של הטלפון. אפשר לאשר בהגדרות הדפדפן', 3200); return; }
+  setFollow(true); toast('המפה מסתובבת לפי הכיוון שהטלפון פונה אליו', 2400);
+  setTimeout(() => { if (COMP.follow && COMP.head == null) { setFollow(false); toast('המכשיר הזה לא מוסר כיוון מצפן', 2600); } }, 2500);
+};
+// touching the map to move it ends the follow mode
+canvas.addEventListener('pointerdown', () => { if (COMP.follow) setFollow(false); });
 
 /* ================= BOOT ================= */
 function fitDevice() {
