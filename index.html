@@ -1887,7 +1887,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const fmtMin = sec => { const m = Math.max(1, Math.round(sec / 60)); return m < 60 ? m + ' דק׳' : Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') + ' ש׳'; };
 const fmtDist = d => d < 1000 ? Math.round(d / 10) * 10 + ' מ׳' : (d / 1000).toFixed(1) + ' ק״מ';
 const fmtClock = sec => new Date(Date.now() + sec * 1000).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-const norm = s => String(s || '').replace(/[׳'`’"״]/g, '').replace(/[\-–.,()\/]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(רחוב|רח|שדרות|שד|דרך)\s+/, '').toLowerCase();
+const norm = s => String(s || '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').replace(/[׳'`’"״]/g, '').replace(/[\-–.,()\/]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(רחוב|רח|שדרות|שד|דרך)\s+/, '').toLowerCase();
 const ICON = {
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
   clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
@@ -4238,7 +4238,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792581629';
+const APP_VERSION = '1792582362';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -4275,6 +4275,10 @@ if (SITE) setTimeout(async () => {
 /* ---------- voice search: say the address ---------- */
 const VSRC = window.SpeechRecognition || window.webkitSpeechRecognition;
 let vRec = null;
+function cleanSpoken(t) { // speech comes back with direction marks, odd spaces and punctuation that the search does not expect
+  return String(t || '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').replace(/[\u00a0\u2000-\u200b\u202f]/g, ' ')
+    .replace(/[.?!,،;:]+/g, ' ').replace(/(\d)\s*-\s*(\d)/g, '$1-$2').replace(/\s+/g, ' ').trim();
+}
 function voiceFallback(msg) {
   openSearch(); setTimeout(() => $('#q').focus(), 80);
   toast(msg || 'אפשר ללחוץ על המיקרופון במקלדת ולהגיד את הכתובת', 4200);
@@ -4289,8 +4293,10 @@ function voiceSearch() {
     const r = new VSRC(); vRec = r;
     r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 1; r.continuous = false;
     r.onresult = ev => {
-      let t = ''; for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
-      got = t.replace(/[.?!]+$/, '').trim(); const q = $('#q'); q.value = got; renderResults();
+      const parts = []; for (let i = 0; i < ev.results.length; i++) parts.push(String(ev.results[i][0].transcript || ''));
+      const lastP = parts[parts.length - 1].trim();
+      let t = parts.length > 1 && parts[0].trim() && lastP.startsWith(parts[0].trim()) ? lastP : parts.join(' '); // iOS repeats the growing sentence
+      got = cleanSpoken(t); const q = $('#q'); q.value = got; renderResults();
     };
     r.onerror = e => {
       done = true; voiceStop();
