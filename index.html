@@ -2077,6 +2077,8 @@ function planRoute0(dest, stops) {
     // aim at the destination: every road node within 60 m is a candidate, walking the last bit costs a little
     let cands = nodesNear(L2.x, L2.y, 60, n => (OUT[n].length > 0 || IN[n].length > 0) && n !== from);
     if (!cands.size) { const nn = nearestNode(L2.x, L2.y, n => OUT[n].length > 0 && n !== from, 40); if (nn >= 0) cands = new Map([[nn, Math.hypot(NX[nn] - L2.x, NY[nn] - L2.y)]]); }
+    // long straight streets have their road points far apart: look wider before giving up
+    for (const R of [140, 300]) { if (cands.size) break; cands = nodesNear(L2.x, L2.y, R, n => (OUT[n].length > 0 || IN[n].length > 0) && n !== from); }
     const { prev, best } = dijkstra(from, { banA: from, banB: ban, goal: L2, cands });
     const dst = best;
     if (dst < 0) return null;
@@ -2464,10 +2466,17 @@ async function openRoutePreview(dest, keepStops) {
   if (dest && dest.x != null && !tilesAround(dest.x, dest.y, 900).every(k => TILES.has(k) && TILES.get(k).info)) { toast('טוען את היעד…', 1400); try { await ensureArea(dest.x, dest.y, 1500); } catch (e) { } }
   if (!S.origin) { S.pendingDest = dest; openOriginPicker(); toast('קודם בוחרים מאיפה יוצאים', 2200); return; }
   S.dest = dest; if (!keepStops) { S.stops = []; S.showSugg = false; }
-  const rf = planRoute(dest, S.stops, 'fast'), rs = rf ? planRoute(dest, S.stops, 'smooth') : null;
+  let rf = planRoute(dest, S.stops, 'fast');
+  if (!rf && S.origin && dest.x != null) { // the streets in between may not be loaded yet: bring in the corridor and try again
+    toast('טוען את הדרך…', 1600);
+    const ox = S.origin.x != null ? S.origin.x : egoX, oy = S.origin.y != null ? S.origin.y : egoY, L = Math.hypot(dest.x - ox, dest.y - oy), n = Math.min(12, Math.ceil(L / 3000));
+    for (let i = 0; i <= n; i++) { const t = n ? i / n : 0; try { await ensureArea(ox + (dest.x - ox) * t, oy + (dest.y - oy) * t, 1500); } catch (e) { } }
+    rf = planRoute(dest, S.stops, 'fast');
+  }
+  const rs = rf ? planRoute(dest, S.stops, 'smooth') : null;
   S.alt = { fast: rf, smooth: rs }; S.routeMode = S.routeMode || 'fast';
   const r = S.alt[S.routeMode] || rf;
-  if (!r) { toast('לא נמצאה דרך ליעד הזה'); return; }
+  if (!r) { toast(egoNode < 0 ? 'לא מצאנו כביש ליד נקודת המוצא. נסו לבחור מאיפה יוצאים' : 'לא מצאנו דרך ליעד הזה. נסו לבחור כתובת קרובה או נקודה על המפה', 3600); return; }
   useRoute(r);
 }
 function useRoute(r) {
@@ -4526,7 +4535,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792597863';
+const APP_VERSION = '1792603071';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
