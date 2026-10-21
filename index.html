@@ -501,6 +501,44 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
 .vcolors button{width:44px;height:44px}
 #sNav .glass,#sNav .dark-glass{backdrop-filter:blur(12px) saturate(150%);-webkit-backdrop-filter:blur(12px) saturate(150%)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* ---- drive HMI: one calm instrument panel ---- */
+#device.hmi #man{background:linear-gradient(180deg,rgba(22,30,48,.86),rgba(16,22,36,.86));border-radius:24px;box-shadow:0 14px 34px rgba(4,8,20,.35),inset 0 0 0 1px rgba(255,255,255,.08),inset 0 1px 0 rgba(255,255,255,.1)}
+#device.hmi #mIcon{width:62px;height:62px;border-radius:18px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+#device.hmi #mIcon svg{width:44px;height:44px;color:#fff}
+#device.hmi #mDist{font-size:38px;font-weight:600}
+#device.hmi #mStreet{font-size:17px;color:#fff}
+#device.hmi #mInstr{color:rgba(225,233,248,.68)}
+#mProg{height:4px;margin:0 16px 12px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}
+#mProg i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#3fe3ff,#2f6bff);transform-origin:right center;transform:scaleX(0);transition:transform .25s linear}
+#device:not(.hmi) #mProg{display:none}
+#device.hmi #lanes{background:linear-gradient(180deg,#3373ff,#2459e6);border-radius:14px;padding:4px 6px;box-shadow:0 8px 20px -6px rgba(36,89,230,.6),inset 0 1px 0 rgba(255,255,255,.25)}
+#device.hmi .lane{color:rgba(255,255,255,.42)}
+#device.hmi .lane+.lane::before{border-left:2px dashed rgba(255,255,255,.4)}
+#device.hmi .lane.on{color:#fff;background:none;box-shadow:none}
+#device.hmi .lane.on svg{filter:drop-shadow(0 0 6px rgba(255,255,255,.55))}
+#device.hmi #then{border-top:1px solid rgba(255,255,255,.08);color:rgba(225,233,248,.8)}
+#device.hmi #navFabs{gap:0;padding:3px;border-radius:26px;background:rgba(20,28,44,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 10px 26px rgba(4,8,20,.3),inset 0 0 0 1px rgba(255,255,255,.08)}
+#device.hmi #navFabs .circ{background:none!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;color:#e9eef8;width:46px;height:46px}
+#device.hmi #navFabs .circ+.circ{border-top:1px solid rgba(255,255,255,.08);border-radius:0}
+#device.hmi #navBar{background:linear-gradient(180deg,rgba(22,30,48,.86),rgba(16,22,36,.88));color:#fff;box-shadow:0 14px 34px rgba(4,8,20,.35),inset 0 0 0 1px rgba(255,255,255,.08)}
+#device.hmi #navBar .stat span{color:rgba(225,233,248,.62)}
+#device.hmi #navBar .eta2 b{color:#3fe3ff}
+#device.hmi #prog{background:rgba(255,255,255,.12)}
+#device.hmi #spd{background:rgba(20,28,44,.78);color:#fff}
+#device.hmi #spd span{color:rgba(225,233,248,.62)}
+#device.hmi #street{background:rgba(20,28,44,.78);color:#fff}
+#device.hmi #light{background:rgba(20,28,44,.82);color:#fff}
+#device.hmi #lightS{color:rgba(225,233,248,.72)}#device.hmi #lightS strong{color:#fff}
+#device.hmi #man #liveChip{bottom:auto;top:38px}
+
+.plrow .t,.plcar .t{display:flex;flex-direction:column}.plrow .t b{font-size:16px}.plrow .t span,.plcar .t span{font-size:13px;color:var(--ink2)}
+.plcar{display:flex;align-items:center;gap:12px;margin:12px 0 2px;padding:10px 12px;border-radius:16px;background:var(--fill)}.plcar .t b{font-size:15px}
+.pldot{width:28px;height:28px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15),0 2px 6px rgba(0,0,0,.15)}
+.plin{display:flex;gap:10px;align-items:stretch;margin-top:12px}
+.plate{flex:1;display:flex;align-items:stretch;height:50px;border-radius:10px;overflow:hidden;background:#ffd21f;box-shadow:inset 0 0 0 2px #1b1b1b}
+.plate i{display:grid;place-items:center;width:30px;background:#1f4fbf;color:#fff;font-style:normal;font-weight:700;font-size:12px}
+.plate input{flex:1;min-width:0;border:0;background:transparent;font:700 22px var(--fn);letter-spacing:.06em;text-align:center;color:#111;outline:none}
 </style>
 
 <div id="stage">
@@ -1144,18 +1182,19 @@ function paintWay(L, w, wi) {
 /* ================= BUILDINGS ================= */
 const bldInfo = { count: 0, measured: 0 };
 const bldMat = new THREE.MeshLambertMaterial({ vertexColors: true });
-const bldUniforms = { uNight: { value: 0 }, uCam: { value: new THREE.Vector3() }, uCar: { value: new THREE.Vector3() }, uFade: { value: 0 } };
+const bldUniforms = { uNight: { value: 0 }, uCam: { value: new THREE.Vector3() }, uCar: { value: new THREE.Vector3() }, uFade: { value: 0 }, uDrive: { value: 0 }, uDriveCol: { value: new THREE.Color(0xe4e7ee) } };
 bldMat.onBeforeCompile = sh => {
   Object.assign(sh.uniforms, bldUniforms);
-  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 aWin; varying vec2 vWin; varying vec3 vWp; varying float vUp;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWin = aWin; vUp = normal.y; vWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uNight; uniform vec3 uCam; uniform vec3 uCar; uniform float uFade; varying vec2 vWin; varying vec3 vWp; varying float vUp;\nfloat h21(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }')
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 aWin; varying vec2 vWin; varying vec3 vWp; varying float vUp; uniform float uDrive;').replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed.y *= mix(1.0, 0.5, uDrive);\nvWin = aWin; vUp = normal.y; vWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uNight; uniform vec3 uCam; uniform vec3 uCar; uniform float uFade; uniform float uDrive; uniform vec3 uDriveCol; varying vec2 vWin; varying vec3 vWp; varying float vUp;\nfloat h21(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }')
     .replace('void main() {', `void main() {
       if (uFade > 0.5) { vec3 ab = uCar - uCam; float t = clamp(dot(vWp - uCam, ab) / dot(ab, ab), 0.0, 1.0); float d = length(vWp - (uCam + t * ab));
         if (t < 0.985 && d < 9.0) { float k = smoothstep(9.0, 5.0, d); if (h21(floor(gl_FragCoord.xy)) < k * 0.85) discard; } }
       float bWall = 1.0 - step(0.5, vUp);
       vec2 bCs = vec2(3.4, 3.1), bCell = floor(vWin / bCs), bF = fract(vWin / bCs);
       float bWin = bWall * step(1.0, vWin.y) * step(0.2, bF.x) * step(bF.x, 0.8) * step(0.3, bF.y) * step(bF.y, 0.82);
-      float bLit = step(0.55, h21(bCell));`)
+      float bLit = step(0.55, h21(bCell));
+      bWin *= 1.0 - uDrive; // driving: clean, calm blocks without windows`)
     .replace('#include <color_fragment>', `#include <color_fragment>
       {
         // facade: floor slabs, contact shadow at the street, glass that reflects the sky by day and goes dark at night
@@ -1165,6 +1204,8 @@ bldMat.onBeforeCompile = sh => {
         diffuseColor.rgb = mix(diffuseColor.rgb, glass * mix(1.0, 0.28, uNight), bWin * 0.66);
         diffuseColor.rgb *= 1.0 - slab * 0.16 - foot * 0.22 * (1.0 - uNight);
         diffuseColor.rgb *= mix(1.0, 0.9, step(0.5, vUp)); // roofs a touch darker than walls
+        vec3 dc = uDriveCol * mix(0.9, 1.06, step(0.5, vUp)) * (0.9 + 0.1 * smoothstep(0.0, 40.0, vWin.y));
+        diffuseColor.rgb = mix(diffuseColor.rgb, dc, uDrive);
       }`)
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       if (uNight > 0.0) {
@@ -1668,13 +1709,15 @@ const routeMat = new THREE.ShaderMaterial({
       float e=abs(vU); float near=smoothstep(-2.0,2.5,d);
       if (uNav > 0.5) {
         // driving: your whole lane glows softly, with crisp edges and arrows that flow forward
-        float edge=smoothstep(0.84,0.93,e)*(1.0-smoothstep(0.97,1.0,e));
-        float fill=1.0-smoothstep(0.93,1.0,e);
-        float ch=fract(vS*0.07 - e*0.5 - uT*0.8); float chev=smoothstep(0.70,0.74,ch)*(1.0-smoothstep(0.80,0.84,ch))*(1.0-smoothstep(0.45,0.7,e));
-        float fade=(1.0-smoothstep(140.0,480.0,d))*near;
-        vec3 col=mix(c1,c2,clamp(d/420.0,0.0,1.0));
-        float a=(fill*0.17+edge*0.9)*fade;
-        gl_FragColor=vec4(col+vec3(0.18)*edge,a); return; }
+        // driving: one lane of light ahead of the car, brightest close by, fading into the distance
+        float fill=1.0-smoothstep(0.78,1.0,e);
+        float edge=smoothstep(0.78,0.9,e)*(1.0-smoothstep(0.95,1.0,e));
+        float core=1.0-smoothstep(0.0,0.6,e);
+        float fade=(1.0-smoothstep(40.0,240.0,d))*near;
+        float tail=(1.0-smoothstep(240.0,900.0,d))*near*0.16;
+        vec3 col=mix(c1,c2,clamp(d/200.0,0.0,1.0));
+        float a=max((fill*0.46+core*0.22+edge*0.5)*fade, fill*tail);
+        gl_FragColor=vec4(col+vec3(0.28)*core*(1.0-smoothstep(0.0,110.0,d)),a); return; }
       float head=smoothstep(60.0*uK,0.0,uRev-vS)*step(vS,uRev);
       float body=1.0-smoothstep(0.86,1.0,e); float rim=smoothstep(0.62,0.74,e)*(1.0-smoothstep(0.86,1.0,e));
       vec3 col=mix(c1,c2,clamp(d/(1400.0*uK),0.0,1.0));
@@ -1761,11 +1804,11 @@ function sunPos(date, lat = 32.08, lon = 34.81) { // NOAA-style approximation; r
 const C = h => new THREE.Color(h);
 const TONES = {
   night: { top: C(0x030b0a), hor: C(0x0e2a26), ground: C(0x0a1513), side: C(0x121f1d), asph: C(0x2b3836), hi: C(0x283432), mark: C(0xc3cbe8), cross: C(0xd2d8ef), green: C(0x0f2019), wood: C(0x0d1c16), pitch: C(0x12261e), water: C(0x0b1d38), island: C(0x12221c), bld: [0.24, 0.31, 0.30], hs: C(0x86c9bd), hg: C(0x090b16), hi2: 0.8, sunc: C(0x9fb2ff), suni: 0.22, win: 1, ui: 'dark', acc: '#33dcae', acc2: '#8ef0d0' },
-  dusk: { top: C(0x23285e), hor: C(0xff7a7a), ground: C(0x2a2638), side: C(0x332d42), asph: C(0x4f4a66), hi: C(0x48435e), mark: C(0xf0eaf8), cross: C(0xf4effa), green: C(0x2b3a37), wood: C(0x24332f), pitch: C(0x30413c), water: C(0x3a4f8a), island: C(0x2b3a37), bld: [0.4, 0.36, 0.5], hs: C(0xe6a6c8), hg: C(0x2a2040), hi2: 0.85, sunc: C(0xff7a5c), suni: 0.55, win: 0.65, ui: 'dark', acc: '#33dcae', acc2: '#ff8fb0' },
-  dawn: { top: C(0x30477f), hor: C(0xffb39a), ground: C(0x3a3a4a), side: C(0x45445a), asph: C(0x5f5d74), hi: C(0x57556c), mark: C(0xf3f0fa), cross: C(0xf6f4fb), green: C(0x34463e), wood: C(0x2e3f38), pitch: C(0x3a4d44), water: C(0x5269a0), island: C(0x34463e), bld: [0.6, 0.53, 0.6], hs: C(0xffc4b4), hg: C(0x3a3048), hi2: 0.85, sunc: C(0xffa384), suni: 0.5, win: 0.45, ui: 'dark', acc: '#2fd6a6', acc2: '#ffc29a' },
-  golden: { top: C(0x6f93d8), hor: C(0xffc58e), ground: C(0xf1e5d3), side: C(0xe7d8c1), asph: C(0x8f8784), hi: C(0x857d7a), mark: C(0xfffaf2), cross: C(0xfffaf2), green: C(0xc6d797), wood: C(0xb5cc88), pitch: C(0xcadc9e), water: C(0x86bde3), island: C(0xc6d797), bld: [0.97, 0.9, 0.84], hs: C(0xffe6cc), hg: C(0xb8a48c), hi2: 0.9, sunc: C(0xffc896), suni: 0.75, win: 0.08, ui: 'light', acc: '#0fae84', acc2: '#ffb34d' },
-  morning: { top: C(0x5aa2ff), hor: C(0xdcefff), ground: C(0xedf1ea), side: C(0xe0e5dd), asph: C(0x8a92a0), hi: C(0x7f8796), mark: C(0xffffff), cross: C(0xffffff), green: C(0xb6e09c), wood: C(0xa3d48a), pitch: C(0xbfe6a6), water: C(0x6cc3f5), island: C(0xb6e09c), bld: [0.99, 0.99, 1.0], hs: C(0xffffff), hg: C(0xc6d4bd), hi2: 1.0, sunc: C(0xfff4e2), suni: 0.75, win: 0, ui: 'light', acc: '#0fa97f', acc2: '#2fd6a6' },
-  noon: { top: C(0x3d8cff), hor: C(0xcfe4ff), ground: C(0xeef0ea), side: C(0xe1e4dc), asph: C(0x8a919e), hi: C(0x7e8593), mark: C(0xffffff), cross: C(0xffffff), green: C(0xb0dc92), wood: C(0x9ccf80), pitch: C(0xbae39f), water: C(0x5cbaf2), island: C(0xb0dc92), bld: [1.0, 1.0, 1.0], hs: C(0xffffff), hg: C(0xc9d3c0), hi2: 1.0, sunc: C(0xffffff), suni: 0.7, win: 0, ui: 'light', acc: '#0fa97f', acc2: '#2fd6a6' },
+  dusk: { top: C(0x23285e), hor: C(0xff7a7a), ground: C(0x2a2638), side: C(0x332d42), asph: C(0x403c52), hi: C(0x3a364b), mark: C(0xf0eaf8), cross: C(0xf4effa), green: C(0x2b3a37), wood: C(0x24332f), pitch: C(0x30413c), water: C(0x3a4f8a), island: C(0x2b3a37), bld: [0.4, 0.36, 0.5], hs: C(0xe6a6c8), hg: C(0x2a2040), hi2: 0.85, sunc: C(0xff7a5c), suni: 0.55, win: 0.65, ui: 'dark', acc: '#33dcae', acc2: '#ff8fb0' },
+  dawn: { top: C(0x30477f), hor: C(0xffb39a), ground: C(0x3a3a4a), side: C(0x45445a), asph: C(0x4a4858), hi: C(0x444252), mark: C(0xf3f0fa), cross: C(0xf6f4fb), green: C(0x34463e), wood: C(0x2e3f38), pitch: C(0x3a4d44), water: C(0x5269a0), island: C(0x34463e), bld: [0.6, 0.53, 0.6], hs: C(0xffc4b4), hg: C(0x3a3048), hi2: 0.85, sunc: C(0xffa384), suni: 0.5, win: 0.45, ui: 'dark', acc: '#2fd6a6', acc2: '#ffc29a' },
+  golden: { top: C(0x6f93d8), hor: C(0xffc58e), ground: C(0xf1e5d3), side: C(0xe7d8c1), asph: C(0x6a6462), hi: C(0x625c5a), mark: C(0xfffaf2), cross: C(0xfffaf2), green: C(0xc6d797), wood: C(0xb5cc88), pitch: C(0xcadc9e), water: C(0x86bde3), island: C(0xc6d797), bld: [0.97, 0.9, 0.84], hs: C(0xffe6cc), hg: C(0xb8a48c), hi2: 0.9, sunc: C(0xffc896), suni: 0.75, win: 0.08, ui: 'light', acc: '#0fae84', acc2: '#ffb34d' },
+  morning: { top: C(0x5aa2ff), hor: C(0xdcefff), ground: C(0xedf1ea), side: C(0xe0e5dd), asph: C(0x5f6672), hi: C(0x565d69), mark: C(0xffffff), cross: C(0xffffff), green: C(0xb6e09c), wood: C(0xa3d48a), pitch: C(0xbfe6a6), water: C(0x6cc3f5), island: C(0xb6e09c), bld: [0.99, 0.99, 1.0], hs: C(0xffffff), hg: C(0xc6d4bd), hi2: 1.0, sunc: C(0xfff4e2), suni: 0.75, win: 0, ui: 'light', acc: '#0fa97f', acc2: '#2fd6a6' },
+  noon: { top: C(0x3d8cff), hor: C(0xcfe4ff), ground: C(0xeef0ea), side: C(0xe1e4dc), asph: C(0x5d636e), hi: C(0x535965), mark: C(0xffffff), cross: C(0xffffff), green: C(0xb0dc92), wood: C(0x9ccf80), pitch: C(0xbae39f), water: C(0x5cbaf2), island: C(0xb0dc92), bld: [1.0, 1.0, 1.0], hs: C(0xffffff), hg: C(0xc9d3c0), hi2: 1.0, sunc: C(0xffffff), suni: 0.7, win: 0, ui: 'light', acc: '#0fa97f', acc2: '#2fd6a6' },
 };
 const TONE_NAMES = { auto: 'אוטומטי לפי השעה', morning: 'בוקר', noon: 'צהריים', golden: 'שעת זהב', dusk: 'שקיעה', night: 'לילה' };
 function lerpTone(a, b, t) {
@@ -2614,7 +2657,7 @@ function openProfile(sec) {
   }
   const title = PR_CATS.find(c => c[0] === sec)[1];
   let body = '';
-  if (sec === 'car') body = vehicleGroupHTML().replace(/^<div class="sec">.*?<\/div>/, '') + '<div class="prnote">הרכב והצבע שבחרתם מופיעים על המפה ובזמן נסיעה.</div>';
+  if (sec === 'car') body = plateHTML() + '<div class="eyebrow" style="margin:4px 8px 8px">או בוחרים בעצמכם</div>' + vehicleGroupHTML().replace(/^<div class="sec">.*?<\/div>/, '') + '<div class="prnote">הרכב והצבע שבחרתם מופיעים על המפה ובזמן נסיעה.</div>';
   if (sec === 'look') { const cur = P.tone || 'auto', T = [['auto', 'linear-gradient(135deg,#3d8cff,#ffc58e 45%,#ff5d8f 70%,#141a3c)'], ['morning', 'linear-gradient(160deg,#5aa2ff,#dcefff)'], ['noon', 'linear-gradient(160deg,#3d8cff,#cfe4ff)'], ['golden', 'linear-gradient(160deg,#6f93d8,#ffc58e)'], ['dusk', 'linear-gradient(160deg,#23285e,#ff7a7a)'], ['night', 'linear-gradient(160deg,#050816,#1a2250)']];
     body = `<div class="group glass strong" style="padding:12px"><div class="tonepick">${T.map(([k, g]) => `<button data-tone="${k}" style="background:${g}" aria-pressed="${cur === k}">${TONE_NAMES[k]}</button>`).join('')}</div></div><div class="prnote">באוטומטי, הצבעים, האור והשמיים עוקבים אחרי השמש האמיתית: בוקר, צהריים, שקיעה ולילה.</div>`; }
   if (sec === 'music') body = musicSettingsHTML();
@@ -2634,7 +2677,7 @@ function openProfile(sec) {
   $$('#sProfile [data-lg]').forEach(b => b.onclick = () => b.dataset.lg === 'data' ? openMyData() : openLegal(b.dataset.lg));
   if ($('#pDel')) $('#pDel').onclick = deleteAccount;
   $$('#sProfile [data-tone]').forEach(b => b.onclick = () => { Store.data.prefs.tone = b.dataset.tone; Store.save(); applyTone(true); openProfile('look'); });
-  if (sec === 'car') bindVehicleGroup('#sProfile');
+  if (sec === 'car') { bindVehicleGroup('#sProfile'); bindPlate(); }
   if (sec === 'music') bindMusicSettings();
   on('pWake', e => { P.wake = e.target.checked; Store.save(); if (e.target.checked && !(window.SpeechRecognition || window.webkitSpeechRecognition)) toast('הדפדפן הזה לא תומך בזיהוי דיבור', 3600); });
   on('pGlosa', e => { P.glosa = e.target.checked; Store.save(); });
@@ -2727,7 +2770,7 @@ function updateHUD() {
   const s = S.s;
   let mi = 0; while (mi < r.man.length - 1 && r.man[mi].s < s - 1) mi++;
   const m = r.man[mi], d = Math.max(0, m.s - s), fd = fmtD(d);
-  setH($('#mDist'), S.arrived ? 'הגעתם' : `${fd.v}<small>${fd.u}</small>`);
+  setH($('#mDist'), S.arrived ? 'הגעתם' : `${fd.v}<small>${fd.u}</small>`); if (typeof hmiProgress === 'function') hmiProgress(S.arrived ? 0 : d);
   const key = mi + ':' + r.total;
   if (key !== lastManKey) { lastManKey = key; $('#mIcon').innerHTML = manIcon(m); $('#mInstr').textContent = instr(m); $('#mStreet').textContent = m.street; $('#manLive').textContent = instr(m) + (m.street ? ' ' + m.street : ''); }
   const ld = d < 450 ? laneData(m) : null, lk = ld ? key + JSON.stringify(ld) : '';
@@ -2800,7 +2843,7 @@ function fitToPlaces(list) { const near = list.map(p => [p, Math.hypot(p.x - ego
 function updateCamera(dt) {
   const k = 1 - Math.exp(-dt * 3.5);
   if (cam.mode === 'chase') {
-    const C = [{ dist: 15, h: 5.5, look: 30 }, { dist: 70, h: 52, look: 40 }, { dist: 6, h: 480, look: 0 }][S.navCam];
+    const C = [{ dist: 32, h: 19, look: 22 }, { dist: 80, h: 58, look: 50 }, { dist: 6, h: 480, look: 0 }][S.navCam]; // HMI chase: car in the lower third, road ahead readable
     const yaw = egoH + cam.yawOff, car = V3(egoX, egoY, egoZ);
     const tp = car.clone().addScaledVector(new THREE.Vector3(-Math.cos(yaw), 0, Math.sin(yaw)), C.dist * cam.zoom); tp.y = C.h * cam.zoom + egoZ;
     const tl = car.clone().addScaledVector(new THREE.Vector3(Math.cos(egoH), 0, -Math.sin(egoH)), C.look * Math.min(1.2, cam.zoom));
@@ -3612,6 +3655,135 @@ function bindVehicleGroup(root) {
   $$(root + ' [data-vc]').forEach(b => b.onclick = () => { Store.data.prefs.carColor = +b.dataset.vc; Store.save(); ego.body.material.color.set(+b.dataset.vc); $$(root + ' [data-vc]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
 }
 
+/* ================= MY CAR, DRAWN PROPERLY =================
+   A smooth, modern car instead of a box: a rounded lower body, a narrower glass cabin with a body-colour roof,
+   real-looking wheels with light rims, a full-width rear light bar and slim headlights. One shape per body style. */
+const CAR_SHAPES = {
+  sedan: { W: 1.84, r: 0.34, wx: 1.42, tail: 0.84, head: 0.72,
+    low: [[-2.32, .34], [-2.38, .6], [-2.3, .88], [-1.9, .95], [1.25, .96], [2.0, .84], [2.33, .66], [2.36, .42], [2.22, .32], [-2.18, .32]],
+    cab: [[-1.95, .9], [-1.2, 1.4], [.35, 1.44], [1.3, .9]], roof: [[-1.2, 1.37], [.35, 1.41], [.3, 1.47], [-1.15, 1.44]] },
+  hatch: { W: 1.78, r: 0.32, wx: 1.28, tail: 0.9, head: 0.72,
+    low: [[-2.0, .34], [-2.07, .62], [-2.03, .92], [1.1, .96], [1.8, .84], [2.06, .66], [2.08, .42], [1.95, .32], [-1.9, .32]],
+    cab: [[-2.0, .9], [-1.86, 1.4], [.35, 1.45], [1.2, .9]], roof: [[-1.86, 1.37], [.35, 1.42], [.3, 1.48], [-1.8, 1.45]] },
+  suv: { W: 1.92, r: 0.39, wx: 1.48, tail: 1.02, head: 0.9,
+    low: [[-2.32, .45], [-2.38, .75], [-2.32, 1.12], [1.3, 1.14], [2.1, 1.0], [2.36, .8], [2.38, .52], [2.22, .42], [-2.18, .42]],
+    cab: [[-2.26, 1.06], [-2.1, 1.72], [.75, 1.76], [1.45, 1.06]], roof: [[-2.1, 1.69], [.75, 1.73], [.7, 1.8], [-2.05, 1.77]] },
+  van: { W: 1.96, r: 0.36, wx: 1.62, tail: 1.1, head: 0.9,
+    low: [[-2.5, .42], [-2.53, 1.2], [1.55, 1.2], [2.3, .98], [2.5, .72], [2.48, .46], [-2.4, .42]],
+    cab: [[-2.52, 1.12], [-2.5, 2.02], [1.0, 2.04], [1.78, 1.12]], roof: [[-2.5, 1.98], [1.0, 2.0], [.95, 2.07], [-2.45, 2.06]] },
+  pickup: { W: 1.92, r: 0.4, wx: 1.68, tail: 0.98, head: 0.92,
+    low: [[-2.65, .46], [-2.68, 1.12], [1.5, 1.12], [2.25, 1.0], [2.6, .82], [2.64, .5], [2.45, .44], [-2.5, .44]],
+    cab: [[-.6, 1.06], [-.52, 1.84], [.72, 1.86], [1.42, 1.06]], roof: [[-.52, 1.8], [.72, 1.82], [.68, 1.88], [-.48, 1.87]] },
+};
+function carPart(pts, width, bevel) {
+  const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath();
+  const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.05, width - 2 * bevel), bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.8, bevelSegments: 3, curveSegments: 6 });
+  g.translate(0, 0, -(width - 2 * bevel) / 2); g.computeVertexNormals(); return g;
+}
+const CAR_GEO = {};
+function carGeo(type) {
+  if (CAR_GEO[type]) return CAR_GEO[type];
+  const c = CAR_SHAPES[type];
+  return CAR_GEO[type] = { low: carPart(c.low, c.W, 0.16), cab: carPart(c.cab, c.W * 0.8, 0.1), roof: carPart(c.roof, c.W * 0.78, 0.05) };
+}
+const carGlass = new THREE.MeshStandardMaterial({ color: 0x1a2230, roughness: 0.15, metalness: 0.6 });
+const carTire = new THREE.MeshLambertMaterial({ color: 0x14161a });
+const carRim = new THREE.MeshStandardMaterial({ color: 0xc9ced6, roughness: 0.35, metalness: 0.7 });
+const carLight = new THREE.MeshBasicMaterial({ color: 0xf4f8ff });
+const tireGeo = new THREE.CylinderGeometry(1, 1, 0.26, 22).rotateX(Math.PI / 2);
+const rimGeo = new THREE.CylinderGeometry(0.66, 0.66, 0.03, 22).rotateX(Math.PI / 2);
+{
+  const _set = setEgoVehicle;
+  setEgoVehicle = function (type) {
+    if (!CAR_SHAPES[type]) return _set(type); // motorbike and truck keep their own drawing
+    const keep = ego.g.children.filter(o => o.material === MATS.glow);
+    for (const o of [...ego.g.children]) if (!keep.includes(o)) ego.g.remove(o);
+    const c = CAR_SHAPES[type], G = carGeo(type);
+    const paint = new THREE.MeshStandardMaterial({ color: egoColor(), roughness: 0.42, metalness: 0.25 });
+    const tl = new THREE.MeshBasicMaterial({ color: 0xff2030 });
+    const body = new THREE.Mesh(G.low, paint); ego.g.add(body);
+    ego.g.add(new THREE.Mesh(G.cab, carGlass));
+    ego.g.add(new THREE.Mesh(G.roof, paint));
+    for (const [x, sz] of [[c.wx, 1], [-c.wx, 1], [c.wx, -1], [-c.wx, -1]]) {
+      const tire = new THREE.Mesh(tireGeo, carTire); tire.scale.set(c.r, c.r, 1); tire.position.set(x, c.r, sz * (c.W / 2 - 0.13)); ego.g.add(tire);
+      const rim = new THREE.Mesh(rimGeo, carRim); rim.scale.set(c.r, c.r, 1); rim.position.set(x, c.r, sz * (c.W / 2 - 0.13 + 0.12)); ego.g.add(rim);
+    }
+    const xs = c.low.map(p => p[0]), rear = Math.min(...xs), front = Math.max(...xs);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.07, c.W * 0.86), tl); bar.position.set(rear - 0.15, c.tail, 0); ego.g.add(bar);
+    for (const z of [c.W * 0.32, -c.W * 0.32]) { const h = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.36), carLight); h.position.set(front + 0.12, c.head, z); ego.g.add(h); }
+    ego.g.scale.setScalar(1);
+    ego.body = body; ego.tl = tl;
+  };
+  setEgoVehicle(Store.data.prefs.carType || 'sedan');
+}
+
+/* ================= MY REAL CAR, FROM ITS LICENSE PLATE =================
+   The Ministry of Transport publishes every registered vehicle on data.gov.il. From the plate number we read
+   the maker, model, year and colour, and the body style from the WLTP model table, then draw that car.
+   Nothing is sent anywhere else; the plate is only used for this lookup. */
+const GOV = 'https://data.gov.il/api/3/action/datastore_search';
+const RES_CARS = ['053cea08-09bc-40ec-8f7a-156f0677aff3', '03adc637-b6fe-402b-9937-7c3d3afc9140', 'cf29862d-ca25-4691-84f6-1be60dcb4a1e'];
+const RES_WLTP = '142afde2-6228-49f9-8a29-9b6c3a0cbe40';
+function govQuery(resource, filters) {
+  const url = GOV + '?' + new URLSearchParams({ resource_id: resource, filters: JSON.stringify(filters), limit: '1' });
+  const viaFetch = () => fetch(url).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  const viaJsonp = () => new Promise((res, rej) => { // older CKAN answers JSONP when a browser blocks the direct call
+    const cb = '__gov' + Math.random().toString(36).slice(2), s = document.createElement('script'); let done = false;
+    window[cb] = j => { done = true; delete window[cb]; s.remove(); res(j); };
+    s.onerror = () => { delete window[cb]; s.remove(); rej(new Error('jsonp')); };
+    setTimeout(() => { if (!done) { delete window[cb]; s.remove(); rej(new Error('timeout')); } }, 9000);
+    s.src = url + '&callback=' + cb; document.head.appendChild(s);
+  });
+  return viaFetch().catch(viaJsonp).then(j => (j && j.result && j.result.records && j.result.records[0]) || null);
+}
+const COLOR_HE = [['שנהב', 0xeee7d6], ['פנינה', 0xf3f5f8], ['לבן', 0xf3f5f8], ['שחור', 0x16181c], ['כסף', 0xb9bec6], ['כסוף', 0xb9bec6], ['אפור כהה', 0x4a5059], ['גרפיט', 0x4a5059], ['אפור', 0x8a9099], ['תכלת', 0x7fb6e6], ['כחול כהה', 0x1d2f63], ['כחול', 0x2257c9], ['טורקיז', 0x14a3a8], ['ירוק כהה', 0x2f4a36], ['ירוק', 0x3f7d4f], ['זית', 0x5d6b3c], ['בורדו', 0x6d1a2a], ['אדום', 0xc8202e], ['כתום', 0xf07a1a], ['צהוב', 0xf2c31b], ['זהב', 0xc9a95c], ['בז', 0xcdb68e], ['חום', 0x6b4a32], ['סגול', 0x5b3c8a], ['ורוד', 0xe48aa8]];
+function colorFromHe(t) { t = String(t || ''); for (const [k, c] of COLOR_HE) if (t.includes(k)) return c; return null; }
+function bodyFrom(merkav, rec) {
+  const m = String(merkav || ''), n = (String(rec.kinuy_mishari || '') + ' ' + String(rec.degem_nm || '')).toUpperCase();
+  if (/האצ.?בק/.test(m)) return 'hatch';
+  if (/טנדר|פיקאפ|PICK/.test(m) || /HILUX|D-MAX|DMAX|RANGER|L200|NAVARA|AMAROK|GLADIATOR|TUNLAND|BT-50/.test(n)) return 'pickup';
+  if (/מסחרי|ואן|מיניבוס|VAN/.test(m) || /TRANSIT|SPRINTER|DUCATO|CRAFTER|MASTER|BOXER|JUMPER|STARIA|H-1|H1 |BERLINGO|PARTNER|CADDY|KANGOO|DOBLO|VITO|TRAFIC/.test(n)) return 'van';
+  if (/רב.?תכליתי|SUV|ג.?יפ|שטח|קרוסאובר|פנאי/.test(m)) return 'suv';
+  if (/סטיישן|סדאן|קופה|קבריולט/.test(m)) return 'sedan';
+  if (rec.sug_degem === 'M') return 'van';
+  return null;
+}
+async function lookupPlate(plate) {
+  const num = parseInt(String(plate).replace(/\D/g, ''), 10);
+  if (!num || String(num).length < 5) throw new Error('bad');
+  let rec = null;
+  for (const res of RES_CARS) { rec = await govQuery(res, { mispar_rechev: num }); if (rec) break; }
+  if (!rec) return null;
+  let merkav = '', doors = 0;
+  try { const w = await govQuery(RES_WLTP, { tozeret_cd: rec.tozeret_cd, degem_cd: rec.degem_cd, shnat_yitzur: rec.shnat_yitzur }); if (w) { merkav = w.merkav || ''; doors = +w.mispar_dlatot || 0; } } catch (e) { }
+  let type = bodyFrom(merkav, rec); if (!type) type = doors === 3 || doors === 5 ? 'hatch' : 'sedan';
+  const maker = String(rec.tozeret_nm || '').replace(/\s+/g, ' ').trim(), model = String(rec.kinuy_mishari || rec.degem_nm || '').trim();
+  return { maker, model, year: rec.shnat_yitzur, colorHe: rec.tzeva_rechev || '', color: colorFromHe(rec.tzeva_rechev), type, merkav };
+}
+function plateHTML() {
+  const my = Store.data.prefs.myCar;
+  return `<div class="group glass strong" style="padding:14px 16px"><div class="plrow"><div class="t"><b>הרכב האמיתי שלי</b><span>לפי מספר הרישוי, ממאגר משרד התחבורה</span></div></div>
+    ${my ? `<div class="plcar"><span class="pldot" style="background:#${(my.color != null ? my.color : 0xf3f5f8).toString(16).padStart(6, '0')}"></span><div class="t"><b>${esc(my.maker)} ${esc(my.model)}</b><span>${esc(String(my.year || ''))}${my.colorHe ? ' · ' + esc(my.colorHe) : ''}</span></div></div>` : ''}
+    <div class="plin"><span class="plate" dir="ltr"><i>IL</i><input id="plNum" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="12-345-67" aria-label="מספר רישוי" value=""></span><button class="mubtn press" id="plGo" style="margin:0;width:auto;padding:0 18px;background:var(--accent);color:#fff">איתור</button></div>
+    <div class="ttstat" id="plSt">${my ? 'הרכב על המפה מצויר לפי הדגם והצבע שלך' : 'מקלידים את המספר, והמפה תצייר את הרכב שלך'}</div></div>`;
+}
+function bindPlate() {
+  const go = async () => {
+    const st = $('#plSt'), v = $('#plNum').value; st.className = 'ttstat'; st.textContent = 'מחפשים במאגר משרד התחבורה…';
+    try {
+      const car = await lookupPlate(v);
+      if (!car) { st.className = 'ttstat bad'; st.textContent = 'לא מצאנו את המספר הזה במאגר. בדקו אותו, או בחרו סוג וצבע למטה'; return; }
+      const P = Store.data.prefs; P.myCar = car; P.carType = car.type; if (car.color != null) P.carColor = car.color; Store.save();
+      setEgoVehicle(car.type); if (car.color != null && ego.body) ego.body.material.color.set(car.color);
+      toast(`${car.maker} ${car.model} על המפה ✓`, 2400); openProfile('car');
+    } catch (e) {
+      st.className = 'ttstat bad'; st.textContent = e.message === 'bad' ? 'מספר רישוי לא תקין' : 'המאגר של משרד התחבורה לא זמין כרגע. אפשר לבחור סוג וצבע ידנית';
+    }
+  };
+  $('#plGo').onclick = go; $('#plNum').onkeydown = e => { if (e.key === 'Enter') go(); };
+  $('#plNum').oninput = e => { const d = e.target.value.replace(/\D/g, '').slice(0, 8); e.target.value = d.length === 8 ? `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}` : d.length === 7 ? `${d.slice(0, 2)}-${d.slice(2, 5)}-${d.slice(5)}` : d; };
+}
+
 /* ================= ROAD REPORTS: tap or speak ("נתיב, משטרה בצד ימין, בדיוק עברתי") =================
    Shared with everyone who uses this NATIV through the artifact's shared store (collection "reports").
    Each report expires on its own; drivers who pass it can confirm or say it is gone. */
@@ -3960,7 +4132,7 @@ function updateStreetNames() {
   const on = Store.data.prefs.streetNames !== false && ['home', 'place', 'route', 'nav', 'arrive', 'search'].includes(S.mode);
   const dark = document.getElementById('device').getAttribute('data-ui') === 'dark';
   camera.updateMatrixWorld(); _snR.setFromMatrixColumn(camera.matrixWorld, 2);
-  const low = _snR.y < 0.62 && (S.mode === 'nav' || S.mode === 'arrive'); // camera looks across the street, not down on it
+  const low = (S.mode === 'nav' || S.mode === 'arrive') && S.navCam !== 2; // while driving: small upright signs, never big names painted on the road // camera looks across the street, not down on it
   updateStreetSigns(dark, low);
   if (!on || low) { SN.pool.forEach(m => m.visible = false); return; }
   const nav = S.mode === 'nav' || S.mode === 'arrive';
@@ -4354,7 +4526,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792595015';
+const APP_VERSION = '1792597863';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -4816,6 +4988,43 @@ async function openNearby(place, g = 'fun') {
     S.place = pl; openNearby(pl, p.near.g);
   };
 }
+
+/* ================= DRIVE HMI LOOK =================
+   While driving the map turns into a calm instrument view: muted cool ground, slate roads with crisp white
+   markings, clean window-less blocks, and one glowing lane ahead of the car. Day and night palettes. */
+const DRIVE_PAL = {
+  day: { ground: 0xc9ccd8, green: 0xbac6c2, pitch: 0xbac6c2, wood: 0xb0beb8, side: 0xd8dae3, asph: 0x5b6171, hi: 0x4e5464, island: 0xc6c9d4, mark: 0xffffff, cross: 0xf4f5f8, hor: 0xdadde7, top: 0xb7c3dc, bld: 0xe2e6ef, lane1: 0x3fe3ff, lane2: 0x2f6bff },
+  night: { ground: 0x151c2a, green: 0x17242a, pitch: 0x17242a, wood: 0x152129, side: 0x1e2637, asph: 0x293040, hi: 0x2d3445, island: 0x242d3f, mark: 0xe8edf6, cross: 0xc8d0de, hor: 0x1e2a43, top: 0x0b1120, bld: 0x3a4762, lane1: 0x37e6ff, lane2: 0x2a63ff },
+};
+let driveOn = false;
+const _routeC = { c1: routeMat.uniforms.c1.value.clone(), c2: routeMat.uniforms.c2.value.clone() };
+function driveLook(on) {
+  driveOn = on;
+  if (!on) { bldUniforms.uDrive.value = 0; routeMat.uniforms.c1.value.copy(_routeC.c1); routeMat.uniforms.c2.value.copy(_routeC.c2); $('#device').classList.remove('hmi'); return; }
+  const P = DRIVE_PAL[(TONE && TONE.ui === 'dark') || DARK ? 'night' : 'day'];
+  for (const k of ['ground', 'green', 'pitch', 'wood', 'side', 'asph', 'hi', 'island', 'mark', 'cross']) if (MATS[k]) MATS[k].color.setHex(P[k]);
+  MATS.stopl.color.setHex(P.mark); MATS.arrow.color.setHex(P.mark); if (MATS.upMark) MATS.upMark.color.setHex(P.mark); if (MATS.up) MATS.up.color.setHex(P.hi);
+  const hor = new THREE.Color(P.hor); renderer.setClearColor(hor); scene.fog.color.copy(hor);
+  skyMat.uniforms.top.value.setHex(P.top); skyMat.uniforms.hor.value.copy(hor);
+  hemi.color.setHex(0xffffff); hemi.groundColor.setHex(P.ground); 
+  bldUniforms.uDrive.value = 1; bldUniforms.uDriveCol.value.setHex(P.bld);
+  routeMat.uniforms.c1.value.setHex(P.lane1); routeMat.uniforms.c2.value.setHex(P.lane2);
+  $('#device').classList.add('hmi');
+}
+{
+  const _at = applyTone;
+  applyTone = function (force) { const r = _at(force); if (driveOn) driveLook(true); return r; };
+  const _sn = startNav;
+  startNav = function () { _sn(); driveLook(true); };
+  const _en = endNav;
+  endNav = function () { driveLook(false); _en(); applyTone(true); };
+}
+/* how close the next turn is: a thin bar under the instruction that fills as you approach */
+{
+  const bar = document.createElement('div'); bar.id = 'mProg'; bar.innerHTML = '<i></i>';
+  const row = $('#man .mrow'); row.after(bar);
+}
+function hmiProgress(d) { const i = $('#mProg i'); if (!i) return; const p = Math.max(0, Math.min(1, 1 - d / 800)); i.style.transform = `scaleX(${p.toFixed(3)})`; }
 
 /* ================= BOOT ================= */
 function fitDevice() {
