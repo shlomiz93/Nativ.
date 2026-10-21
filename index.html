@@ -3998,7 +3998,7 @@ async function trafficFor(r) {
     const one = async j => {
       const [lat, lon] = toLL(r.SX[Math.floor(j)], r.SY[Math.floor(j)]);
       const ctl = new AbortController(); setTimeout(() => ctl.abort(), 7000);
-      let res; try { res = await fetch(`https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/12/json?point=${lat.toFixed(5)},${lon.toFixed(5)}&unit=KMPH&key=${encodeURIComponent(key)}`, { signal: ctl.signal }); } catch (e) { return null; }
+      let res; try { res = await fetch(`https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/18/json?point=${lat.toFixed(5)},${lon.toFixed(5)}&unit=KMPH&key=${encodeURIComponent(key)}`, { signal: ctl.signal }); } catch (e) { return null; }
       if (res.status === 403 || res.status === 401) { TRAF.bad = true; return null; }
       if (!res.ok) return null;
       let f; try { f = (await res.json()).flowSegmentData; } catch (e) { return null; } if (!f) return null;
@@ -4058,17 +4058,25 @@ function trafficLineHTML() {
 
 /* one live request near you, to prove the key works and show what the road looks like right now */
 async function trafficTest(key) {
-  const [lat, lon] = toLL(egoX, egoY);
-  try {
-    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 8000);
-    const r = await fetch(`https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/12/json?point=${lat.toFixed(5)},${lon.toFixed(5)}&unit=KMPH&key=${encodeURIComponent(key)}`, { signal: ctl.signal });
-    if (r.status === 401 || r.status === 403) return { ok: false, msg: 'TomTom דחו את המפתח. בדקו שהעתקתם אותו במלואו ושיש לו הרשאה ל-Traffic API' };
-    if (r.status === 429) return { ok: true, msg: '✓ המפתח עובד (הגעתם למכסה היומית, נסו שוב מחר)' };
-    if (!r.ok) return { ok: false, msg: 'TomTom לא ענו (' + r.status + '). נסו שוב בעוד רגע' };
-    const f = (await r.json()).flowSegmentData;
-    if (!f) return { ok: true, msg: '✓ המפתח עובד' };
-    return { ok: true, msg: `✓ המפתח עובד · בכביש שלידכם עכשיו: ${Math.round(f.currentSpeed)} קמ״ש מתוך ${Math.round(f.freeFlowSpeed)} בדרך כלל` };
-  } catch (e) { return { ok: false, msg: 'אין חיבור ל-TomTom כרגע. בדקו אינטרנט ונסו שוב' }; }
+  // ask about the nearest real road: your own street first, then the closest main road
+  const pts = [[egoX, egoY]]; const n = nearestNode(egoX, egoY, k => NWAYS[k].some(([wi]) => WAYS[wi].rank >= 2), 40); if (n >= 0) pts.push([NX[n], NY[n]]);
+  let last = 0;
+  for (const [x, y] of pts) for (const z of [18, 14]) {
+    const [lat, lon] = toLL(x, y);
+    try {
+      const ctl = new AbortController(); setTimeout(() => ctl.abort(), 8000);
+      const r = await fetch(`https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/${z}/json?point=${lat.toFixed(5)},${lon.toFixed(5)}&unit=KMPH&key=${encodeURIComponent(key)}`, { signal: ctl.signal });
+      last = r.status;
+      if (r.status === 401 || r.status === 403) return { ok: false, msg: 'TomTom דחו את המפתח. בדקו שהעתקתם אותו במלואו ושיש לו הרשאה ל-Traffic API' };
+      if (r.status === 429) return { ok: true, msg: '✓ המפתח עובד (הגעתם למכסה היומית, נסו שוב מחר)' };
+      if (!r.ok) continue; // 400 = no traffic segment at this exact spot; try the next one
+      const f = (await r.json()).flowSegmentData;
+      if (!f) return { ok: true, msg: '✓ המפתח עובד' };
+      return { ok: true, msg: `✓ המפתח עובד · בכביש הקרוב עכשיו: ${Math.round(f.currentSpeed)} קמ״ש מתוך ${Math.round(f.freeFlowSpeed)} בדרך כלל` };
+    } catch (e) { last = -1; }
+  }
+  if (last === 400) return { ok: true, msg: '✓ המפתח התקבל. אין כרגע נתוני תנועה לרחוב שלידכם, הם יופיעו על המסלול בכבישים הראשיים' };
+  return { ok: false, msg: last === -1 ? 'אין חיבור ל-TomTom כרגע. בדקו אינטרנט ונסו שוב' : 'TomTom לא ענו (' + last + '). נסו שוב בעוד רגע' };
 }
 
 /* ================= DRIVE VIEW DETAILS =================
@@ -4206,7 +4214,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792578039';
+const APP_VERSION = '1792578487';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
