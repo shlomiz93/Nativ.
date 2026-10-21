@@ -394,6 +394,28 @@ input{font:inherit;color:inherit}
 .prrow .meta svg{width:18px;height:18px;color:var(--mute)}
 .prtitle{display:flex;align-items:center;gap:12px;margin:4px 4px 14px}.prtitle h2{margin:0}
 .prnote{font-size:13px;line-height:1.55;color:var(--ink2);margin:-2px 8px 14px}
+
+#npRow{display:flex;align-items:center;gap:6px;padding:2px 2px 8px;border-bottom:1px solid var(--hair)}
+.nbpills{margin:4px -4px 10px;padding:0 4px}.nbpills .pill{height:38px;font-size:13.5px}.nbpills .pill.on{background:var(--accent);color:#fff;border-color:transparent}.nbpills .pill.on svg{color:#fff}
+#npRow .npctl{display:flex;align-items:center;gap:2px;flex:none}#npRow .npinfo{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:right}
+#npRow img,#npRow .muapp{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:none}
+#npRow .t,.mucard .t{min-width:0;display:flex;flex-direction:column}#npRow .t b{font-size:14px}#npRow .t span{font-size:12px;color:var(--ink2)}
+.npb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--ink);flex:none}.npb svg{width:22px;height:22px}
+.npb.main{background:var(--accent);color:#fff;width:46px;height:46px}
+.muapp{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.35)}.muapp svg{width:62%;height:62%}
+.mucard{display:flex;align-items:center;gap:14px;margin:10px 2px 4px}.mucard img{width:72px;height:72px;border-radius:14px;object-fit:cover;box-shadow:0 8px 20px rgba(0,0,0,.2)}.mucard .muapp{width:72px;height:72px;border-radius:18px}
+.mucard .t b{font-size:18px}.mucard .t span{font-size:13px;color:var(--ink2)}
+.muctl{display:flex;justify-content:center;align-items:center;gap:22px;margin:10px 0 2px}.muctl .npb{width:48px;height:48px}.muctl .npb.main{width:62px;height:62px}.muctl .npb svg{width:26px;height:26px}
+.mulists{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}.mulist{flex:none;width:96px;display:flex;flex-direction:column;gap:6px;text-align:right;font-size:12.5px;font-weight:600}
+.mulist img,.mulist .muph{width:96px;height:96px;border-radius:14px;object-fit:cover;background:var(--fill);display:grid;place-items:center}.mulist .muph svg{width:30px;height:30px;color:var(--mute)}
+.muopen{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.muopen button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:10px 4px;border-radius:18px;background:var(--fill)}
+.mucon{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border-radius:20px;background:var(--fill);text-align:right;margin-top:8px}.mucon .t{flex:1;display:flex;flex-direction:column}.mucon .t span{font-size:12.5px;color:var(--ink2)}
+.murow{display:flex;align-items:center;gap:12px}.murow .t{flex:1;display:flex;flex-direction:column}.murow .t b{font-size:16px}.murow .t span{font-size:12.5px;color:var(--ink2);line-height:1.4}
+.musteps{margin:14px 0 10px;padding-inline-start:20px;font-size:13.5px;line-height:1.6;color:var(--ink2)}.musteps li{margin-bottom:8px}
+.mucopy{display:flex;align-items:center;gap:8px;margin-top:6px}.mucopy code{flex:1;font-size:12px;background:var(--fill);padding:8px 10px;border-radius:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mucopy button{font-size:13px;font-weight:600;color:var(--accent);padding:6px 10px}
+.mufield{width:100%;box-sizing:border-box;padding:12px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--fill2,rgba(127,127,127,.1));color:var(--ink);font:500 15px var(--f,inherit);margin-bottom:10px}
+.mubtn{width:100%;height:48px;border-radius:999px;background:#1ed760;color:#06290f;font-weight:700;font-size:15.5px;margin-top:12px}.mubtn.ghost{background:var(--fill);color:var(--bad)}
+.mubtn.small{width:auto;height:36px;padding:0 14px;margin:0;background:var(--fill);color:var(--accent);font-size:13.5px}
 .ph{display:flex;align-items:center;gap:14px;margin:4px 8px 18px}
 .ph .av{width:60px;height:60px;border-radius:50%;font-size:24px;font-weight:700;display:grid;place-items:center}
 .ph h3{margin:0;font-size:21px;font-weight:700}
@@ -2319,9 +2341,9 @@ function renderResults() {
     html += `<div class="card glass strong"><div class="list">${[['home', 'בית', ICON.home], ['work', 'עבודה', ICON.work]].map(([k, he, ic]) => { const p = Store.data[k]; return `<button class="li" data-saved="${k}"><span class="ic" style="color:var(--accent)">${ic}</span><span class="t"><b>${he}</b><span class="ell">${p ? esc(p.label) : 'עוד לא הוגדר'}</span></span><span class="meta hwEdit" data-edit="${k}" role="button" aria-label="${p ? 'שינוי' : 'הגדרה'} ${he}" style="color:var(--accent);font-family:var(--f);padding:10px 4px 10px 0">${p ? 'שינוי' : 'הגדרה'}</span></button>`; }).join('')}</div></div>`;
     html += `<div class="sec"><span class="eyebrow">אחרונים</span>${res.length ? '<button id="clr2">ניקוי</button>' : ''}</div>`;
     html += res.length ? `<div class="card glass strong"><div class="list">${res.map((r, i) => listItem(r, i)).join('')}</div></div>` : `<div class="empty">נסו "לח״י 22 בני ברק", "ביאליק רמת גן" או "קפה".</div>`;
-  } else if (!res.length) html = `<div class="card glass strong"><div class="empty">לא מצאנו את זה באזור המפה: גוש דן והשרון: מרעננה וכפר סבא ועד בני ברק, פתח תקווה ותל אביב. נסו שם רחוב, רחוב ומספר, או שם של מקום.</div></div>`;
+  } else if (!res.length) html = `<div class="card glass strong"><div class="empty">לא מצאנו את זה. נסו שם רחוב ועיר, רחוב ומספר, או שם של מקום. אפשר גם לחפש למשל "ברים ליד ביאליק רמת גן".</div></div>`;
   else {
-    const order = ['s', 'r', 'a', 'c', 'p', 't'], by = {}; res.forEach((r, i) => { (by[r.grp || 'p'] = by[r.grp || 'p'] || []).push([r, i]); });
+    const order = ['n', 's', 'r', 'a', 'c', 'p', 't'], by = {}; res.forEach((r, i) => { (by[r.grp || 'p'] = by[r.grp || 'p'] || []).push([r, i]); });
     for (const g of order) if (by[g]) html += `<div class="grp"><span class="eyebrow">${GRP[g]}</span><div class="card glass strong"><div class="list">${by[g].slice(0, g === 'a' ? 6 : 8).map(([r, i]) => listItem(r, i, qv)).join('')}</div></div></div>`;
   }
   $('#sResults').innerHTML = html;
@@ -2548,6 +2570,7 @@ const PR_ART = { // small illustrations: a gradient tile with a drawn scene
   map: ['#7fd36b', '#1f8f5c', '<path d="M24 12l15 7-15 7-15-7z" fill="#fff"/><path d="M9 25l15 7 15-7" fill="none" stroke="#eafbe4" stroke-width="2.4" stroke-linejoin="round"/><path d="M9 31l15 7 15-7" fill="none" stroke="#eafbe4" stroke-width="2.4" stroke-linejoin="round" opacity=".7"/>'],
   traffic: ['#ffcf4a', '#f0652a', '<rect x="18" y="9" width="12" height="30" rx="6" fill="#fff"/><circle cx="24" cy="16" r="3.2" fill="#ff4d5e"/><circle cx="24" cy="24" r="3.2" fill="#ffb11f"/><circle cx="24" cy="32" r="3.2" fill="#2fd6a6"/><path d="M24 39v4" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>'],
   privacy: ['#8fa3b8', '#3c4a5c', '<path d="M24 9l12 4.5v9c0 8-5.2 13.4-12 16.5-6.8-3.1-12-8.5-12-16.5v-9z" fill="#fff"/><rect x="19" y="22" width="10" height="8" rx="1.8" fill="#3c4a5c"/><path d="M21 22v-2.4a3 3 0 016 0V22" fill="none" stroke="#3c4a5c" stroke-width="2"/>'],
+  music: ['#b56cff', '#5a2bd6', '<path d="M19 33V15l15-3.5v18" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><circle cx="15.5" cy="33.5" r="4.3" fill="#fff"/><circle cx="30.5" cy="29.5" r="4.3" fill="#fff"/><path d="M19 20l15-3.5" stroke="#ead9ff" stroke-width="2.4"/>'],
   about: ['#2fd6a6', '#07130f', '<path d="M14 36V22l10-9 10 9v14" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><path d="M20 36v-7h8v7" fill="none" stroke="#bff5e6" stroke-width="2.4"/>'],
 };
 const prArt = (k, size = 52) => { const [a, b, g] = PR_ART[k]; return `<span class="prart" style="width:${size}px;height:${size}px;background:linear-gradient(145deg,${a},${b})"><svg viewBox="0 0 48 48">${g}</svg></span>`; };
@@ -2560,9 +2583,11 @@ function prSummary(k) {
   if (k === 'map') { const n = [P.labels !== false && 'שמות על מבנים', P.side !== false && 'צדי הדרך'].filter(Boolean); return n.length ? n.join(' · ') : 'תצוגה נקייה'; }
   if (k === 'traffic') return P.ttKey ? (P.ttOk ? '✓ מחובר ועובד' : 'מפתח שמור, לא נבדק') : 'כבוי · צריך מפתח';
   if (k === 'privacy') return 'הנתונים שלך, תנאים ומחיקה';
+  if (k === 'music') return musicSummary();
+  if (k === 'about') return 'מקורות, רמזורים ומספרים';
   return '';
 }
-const PR_CATS = [['car', 'הרכב שלי'], ['look', 'מראה המפה'], ['drive', 'ניווט וקול'], ['map', 'מה רואים במפה'], ['traffic', 'תנועה בזמן אמת'], ['privacy', 'פרטיות ונתונים']];
+const PR_CATS = [['car', 'הרכב שלי'], ['look', 'מראה המפה'], ['drive', 'ניווט וקול'], ['map', 'מה רואים במפה'], ['traffic', 'תנועה בזמן אמת'], ['music', 'מוזיקה'], ['privacy', 'פרטיות ונתונים'], ['about', 'על nativ. והמפה']];
 const backBtn = id => `<div class="pagehead"><button class="circ glass press" id="${id}" aria-label="חזרה">${ICON.chev.replace('M15 6l-6 6 6 6', 'M9 6l6 6-6 6')}</button></div>`;
 function openProfile(sec) {
   const a = Store.data.account || {}, P = Store.data.prefs, el = $('#sProfile');
@@ -2570,7 +2595,6 @@ function openProfile(sec) {
     el.innerHTML = `${backBtn('prBack')}<h2>חשבון</h2>
     <div class="prhead glass strong"><span class="av">${avatarHTML()}</span><div><h3>${a.guest || !a.name ? 'אורח' : esc(a.name)}</h3><span>${a.contact ? '<bdi>' + esc(a.contact) + '</bdi> · ' : ''}${Store.where === 'account' ? 'נשמר בחשבון שלך' : 'נשמר במכשיר הזה'}</span></div></div>
     <div class="prgrid">${PR_CATS.map(([k, he]) => `<button class="prtile glass strong press" data-pr="${k}">${prArt(k)}<b>${he}</b><span>${esc(prSummary(k))}</span></button>`).join('')}</div>
-    <button class="prrow glass strong press" data-pr="about">${prArt('about', 40)}<span class="t"><b>על nativ. והמפה</b><span>מקורות, רמזורים ומספרים</span></span><span class="meta">${ICON.chev}</span></button>
     <button class="li press" id="pOut" style="justify-content:center;color:var(--bad);font-weight:600;background:var(--glass-strong);border-radius:999px;height:52px;margin-top:6px">${a.guest ? 'יציאה ממצב אורח' : 'התנתקות'}</button>`;
     $('#prBack').onclick = goBack;
     $$('#sProfile [data-pr]').forEach(b => b.onclick = () => { openProfile(b.dataset.pr); $('#sProfile').scrollTop = 0; });
@@ -2578,11 +2602,12 @@ function openProfile(sec) {
     if (S.mode !== 'profile') show('profile');
     return;
   }
-  const title = sec === 'about' ? 'על nativ. והמפה' : PR_CATS.find(c => c[0] === sec)[1];
+  const title = PR_CATS.find(c => c[0] === sec)[1];
   let body = '';
   if (sec === 'car') body = vehicleGroupHTML().replace(/^<div class="sec">.*?<\/div>/, '') + '<div class="prnote">הרכב והצבע שבחרתם מופיעים על המפה ובזמן נסיעה.</div>';
   if (sec === 'look') { const cur = P.tone || 'auto', T = [['auto', 'linear-gradient(135deg,#3d8cff,#ffc58e 45%,#ff5d8f 70%,#141a3c)'], ['morning', 'linear-gradient(160deg,#5aa2ff,#dcefff)'], ['noon', 'linear-gradient(160deg,#3d8cff,#cfe4ff)'], ['golden', 'linear-gradient(160deg,#6f93d8,#ffc58e)'], ['dusk', 'linear-gradient(160deg,#23285e,#ff7a7a)'], ['night', 'linear-gradient(160deg,#050816,#1a2250)']];
     body = `<div class="group glass strong" style="padding:12px"><div class="tonepick">${T.map(([k, g]) => `<button data-tone="${k}" style="background:${g}" aria-pressed="${cur === k}">${TONE_NAMES[k]}</button>`).join('')}</div></div><div class="prnote">באוטומטי, הצבעים, האור והשמיים עוקבים אחרי השמש האמיתית: בוקר, צהריים, שקיעה ולילה.</div>`; }
+  if (sec === 'music') body = musicSettingsHTML();
   if (sec === 'drive') body = `<div class="group glass strong"><div class="list">${swRow('pVoice', 'הנחיות קוליות', 'הכרזה לפני כל פנייה', S.voice)}${swRow('pPark', 'הצעת חניה לפני היעד', 'חניונים קרובים כשנשארו 600 מטר', P.park !== false)}${swRow('pWake', 'דיווח בקול: "נתיב…"', 'בנסיעה אומרים "נתיב" ואז מה ראיתם', P.wake)}${swRow('pGlosa', 'המלצת מהירות לגל ירוק', 'ניסיוני · לעולם לא מעל המהירות המותרת', P.glosa)}</div></div>`;
   if (sec === 'map') body = `<div class="group glass strong"><div class="list">${swRow('pLabels', 'שמות על מבנים', 'שם המקום והחנויות שבתוכו', P.labels !== false)}${swRow('pSide', 'מה יש בצדי הדרך', 'שם קצר של מקום מימין ומשמאל בנסיעה', P.side !== false)}${swRow('pRain', 'תצוגה מקדימה: גשם', 'איך המפה וההתראות נראים בגשם', WX.preview)}</div></div>`;
   if (sec === 'traffic') body = `<div class="group glass strong" style="padding:14px 16px"><div class="ttrow"><input id="pTT" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" placeholder="TomTom API key" value="${esc(P.ttKey || '')}" style="padding:12px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--fill2, rgba(127,127,127,.1));color:var(--ink);font:500 15px var(--f, inherit)"><button class="press" id="pTTgo">בדיקה</button></div><div class="ttstat" id="pTTst">${P.ttKey ? (P.ttOk ? '✓ המפתח נבדק ועובד' : 'שמור. הקישו "בדיקה" כדי לוודא שהוא עובד') : 'אין מפתח, התנועה בזמן אמת כבויה'}</div></div><div class="prnote">עם מפתח חינמי של TomTom (עד 2,500 בדיקות ביום) המסלול והזמן מתחשבים בעומסים עכשיו. המפתח נשמר בטלפון בלבד.</div>`;
@@ -2600,6 +2625,7 @@ function openProfile(sec) {
   if ($('#pDel')) $('#pDel').onclick = deleteAccount;
   $$('#sProfile [data-tone]').forEach(b => b.onclick = () => { Store.data.prefs.tone = b.dataset.tone; Store.save(); applyTone(true); openProfile('look'); });
   if (sec === 'car') bindVehicleGroup('#sProfile');
+  if (sec === 'music') bindMusicSettings();
   on('pWake', e => { P.wake = e.target.checked; Store.save(); if (e.target.checked && !(window.SpeechRecognition || window.webkitSpeechRecognition)) toast('הדפדפן הזה לא תומך בזיהוי דיבור', 3600); });
   on('pGlosa', e => { P.glosa = e.target.checked; Store.save(); });
   on('pJourney', e => { P.journey = e.target.checked; Store.save(); });
@@ -4298,7 +4324,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792583014';
+const APP_VERSION = '1792588030';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -4489,6 +4515,274 @@ $('#compass').onclick = async () => {
 };
 // touching the map to move it ends the follow mode
 canvas.addEventListener('pointerdown', () => { if (COMP.follow) setFollow(false); });
+
+/* ================= MUSIC: Spotify inside the app, Apple Music and YouTube Music one tap away =================
+   Spotify has an open Web API: after a one-time sign-in the app shows what is playing and controls it
+   (play / pause / next / back, your playlists). Spotify itself keeps playing the sound.
+   Apple and YouTube do not let a web app control their players, so for them the app opens their app. */
+const MU = { tok: null, exp: 0, now: null, busy: false, t: 0, lists: null, err: '' };
+const SP_SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private';
+const SP_REDIRECT = location.origin + location.pathname;
+const muPrefs = () => Store.data.prefs;
+function muLoadTok() { try { const t = JSON.parse(localStorage.getItem('nativ.sp') || 'null'); if (t) { MU.tok = t.a; MU.exp = t.e; MU.ref = t.r; } } catch (e) { } }
+function muSaveTok() { try { localStorage.setItem('nativ.sp', JSON.stringify({ a: MU.tok, e: MU.exp, r: MU.ref })); } catch (e) { } }
+function muForget() { MU.tok = MU.ref = null; MU.exp = 0; MU.now = null; MU.lists = null; try { localStorage.removeItem('nativ.sp'); } catch (e) { } muRenderBar(); }
+muLoadTok();
+const spConnected = () => !!(MU.ref || MU.tok);
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function spLogin() {
+  const id = (muPrefs().spId || '').trim();
+  if (!id) { toast('קודם מדביקים את ה-Client ID של ספוטיפיי', 2600); return; }
+  if (!window.crypto || !crypto.subtle) { toast('הדפדפן הזה לא תומך בהתחברות מאובטחת', 2600); return; }
+  const v = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const ch = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)));
+  const st = b64url(crypto.getRandomValues(new Uint8Array(12)));
+  try { localStorage.setItem('nativ.spv', JSON.stringify({ v, st, id })); } catch (e) { }
+  location.assign('https://accounts.spotify.com/authorize?' + new URLSearchParams({ client_id: id, response_type: 'code', redirect_uri: SP_REDIRECT, code_challenge_method: 'S256', code_challenge: ch, scope: SP_SCOPES, state: st }));
+}
+async function spToken(body) {
+  const r = await fetch('https://accounts.spotify.com/api/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.access_token) throw new Error(j.error_description || j.error || ('HTTP ' + r.status));
+  MU.tok = j.access_token; MU.exp = Date.now() + (j.expires_in || 3600) * 1000 - 60000; if (j.refresh_token) MU.ref = j.refresh_token; muSaveTok();
+}
+(async function spCallback() { // coming back from the Spotify sign-in page
+  let q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
+  if (!q.get('code') && !q.get('error')) return;
+  let saved = null; try { saved = JSON.parse(localStorage.getItem('nativ.spv') || 'null'); } catch (e) { }
+  try { history.replaceState(null, '', location.pathname); } catch (e) { }
+  if (q.get('error')) { setTimeout(() => toast('ההתחברות לספוטיפיי בוטלה', 2600), 2500); return; }
+  if (!saved || saved.st !== q.get('state')) { setTimeout(() => toast('ההתחברות לספוטיפיי לא הושלמה. נסו שוב', 3000), 2500); return; }
+  try { await spToken({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: SP_REDIRECT, client_id: saved.id, code_verifier: saved.v }); localStorage.removeItem('nativ.spv'); muPrefs().music = muPrefs().music || 'spotify'; Store.save(); setTimeout(() => { toast('ספוטיפיי מחובר ✓', 2600); muPoll(); }, 2500); }
+  catch (e) { setTimeout(() => toast('ספוטיפיי לא אישר: ' + String(e.message).slice(0, 60), 3600), 2500); }
+})();
+async function spFetch(path, opt = {}) {
+  if (!spConnected()) throw new Error('not connected');
+  if (!MU.tok || Date.now() > MU.exp) {
+    if (!MU.ref) { muForget(); throw new Error('not connected'); }
+    try { await spToken({ grant_type: 'refresh_token', refresh_token: MU.ref, client_id: (muPrefs().spId || '').trim() }); }
+    catch (e) { muForget(); throw e; }
+  }
+  const r = await fetch('https://api.spotify.com/v1' + path, Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + MU.tok }, opt.body ? { 'Content-Type': 'application/json' } : {}) }));
+  if (r.status === 401) { MU.exp = 0; return spFetch(path, opt); }
+  return r;
+}
+async function muPoll() {
+  if (!spConnected() || MU.busy) return;
+  MU.busy = true;
+  try {
+    const r = await spFetch('/me/player?additional_types=episode');
+    if (r.status === 204) MU.now = { idle: true };
+    else if (r.ok) { const j = await r.json(); const it = j.item || {}; MU.now = { playing: j.is_playing, title: it.name || '', artist: (it.artists || []).map(a => a.name).join(', ') || (it.show && it.show.name) || '', art: ((it.album && it.album.images) || it.images || []).slice(-2)[0]?.url || '', dev: j.device && j.device.name }; }
+    MU.err = '';
+  } catch (e) { MU.err = String(e.message || e); }
+  MU.busy = false; muRenderBar(); if (!$('#modal').hidden && $('#muCard')) muRenderSheet();
+}
+async function spCmd(kind) {
+  const map = { play: ['PUT', '/me/player/play'], pause: ['PUT', '/me/player/pause'], next: ['POST', '/me/player/next'], prev: ['POST', '/me/player/previous'] };
+  try {
+    let r = await spFetch(map[kind][1], { method: map[kind][0] });
+    if (r.status === 404) { // nothing is active: wake the phone's Spotify
+      const d = await spFetch('/me/player/devices'); const j = d.ok ? await d.json() : { devices: [] };
+      const dev = (j.devices || []).find(x => x.type === 'Smartphone') || (j.devices || [])[0];
+      if (dev) { await spFetch('/me/player', { method: 'PUT', body: JSON.stringify({ device_ids: [dev.id], play: kind !== 'pause' }) }); r = { ok: true }; }
+      else { toast('פותחים את ספוטיפיי. אחרי שהוא נפתח, חוזרים ולוחצים שוב', 3400); openApp('spotify'); return; }
+    }
+    if (r.status === 403) { toast('שליטה בנגן דורשת ספוטיפיי Premium', 3000); return; }
+    if (MU.now && (kind === 'play' || kind === 'pause')) { MU.now.playing = kind === 'play'; muRenderBar(); }
+    setTimeout(muPoll, 600);
+  } catch (e) { toast('ספוטיפיי לא זמין כרגע', 2400); }
+}
+async function spPlayList(uri) {
+  try { let r = await spFetch('/me/player/play', { method: 'PUT', body: JSON.stringify({ context_uri: uri }) });
+    if (r.status === 404) { await spCmd('play'); r = await spFetch('/me/player/play', { method: 'PUT', body: JSON.stringify({ context_uri: uri }) }); }
+    if (r.status === 403) { toast('שליטה בנגן דורשת ספוטיפיי Premium', 3000); return; }
+    setTimeout(muPoll, 800);
+  } catch (e) { toast('ספוטיפיי לא זמין כרגע', 2400); }
+}
+async function spLists() {
+  if (MU.lists) return MU.lists;
+  try { const r = await spFetch('/me/playlists?limit=20'); if (r.ok) { const j = await r.json(); MU.lists = (j.items || []).filter(Boolean).map(p => ({ uri: p.uri, name: p.name, img: (p.images || []).slice(-1)[0]?.url || '' })); } } catch (e) { }
+  return MU.lists || [];
+}
+setInterval(() => { if (spConnected() && (S.driving || (!$('#modal').hidden && $('#muCard')))) muPoll(); }, 5000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) muPoll(); });
+
+/* other apps: Apple and YouTube allow no remote control from the web, so we open their app */
+const APPS = {
+  spotify: { he: 'Spotify', url: 'spotify:', web: 'https://open.spotify.com', c: ['#1ed760', '#0c7a3a'] },
+  apple: { he: 'Apple Music', url: 'music://', web: 'https://music.apple.com', c: ['#ff5f7a', '#d11f4c'] },
+  ytm: { he: 'YouTube Music', url: 'youtubemusic://', web: 'https://music.youtube.com', c: ['#ff3b3b', '#b00000'] },
+};
+const APP_ICON = {
+  spotify: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff" opacity=".18"/><path d="M6.5 9.3c3.8-1.1 8-.8 11.2 1M7.2 12.4c3.2-.9 6.5-.6 9.3.9M8 15.3c2.5-.6 5-.4 7.2.7" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/></svg>',
+  apple: '<svg viewBox="0 0 24 24"><path d="M15.5 4v10.2a2.6 2.6 0 11-1.6-2.4V7.2L9.5 8.3v8a2.6 2.6 0 11-1.6-2.4V6.2z" fill="#fff"/></svg>',
+  ytm: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M10 8.6v6.8l5.6-3.4z" fill="#fff"/></svg>',
+};
+const appTile = k => `<span class="muapp" style="background:linear-gradient(145deg,${APPS[k].c[0]},${APPS[k].c[1]})">${APP_ICON[k]}</span>`;
+function openApp(k) {
+  const a = APPS[k]; let left = false;
+  const onHide = () => { left = true; }; document.addEventListener('visibilitychange', onHide, { once: true });
+  location.href = a.url;
+  setTimeout(() => { if (!left && !document.hidden) window.open(a.web, '_blank'); }, 1400);
+}
+
+/* now playing strip inside the navigation bar */
+const MU_SVG = {
+  play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></svg>',
+  next: '<svg viewBox="0 0 24 24"><path d="M6 6l8 6-8 6zM16 6h2.2v12H16z" fill="currentColor"/></svg>',
+  prev: '<svg viewBox="0 0 24 24"><path d="M18 6l-8 6 8 6zM5.8 6H8v12H5.8z" fill="currentColor"/></svg>',
+  note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>',
+};
+{
+  const bar = document.createElement('div'); bar.id = 'npRow'; bar.hidden = true;
+  const nb = $('#navBar'); nb.insertBefore(bar, nb.querySelector('.top'));
+  const fab = document.createElement('button'); fab.id = 'navMusic'; fab.className = 'circ glass press'; fab.setAttribute('aria-label', 'מוזיקה'); fab.innerHTML = MU_SVG.note;
+  $('#navFabs').appendChild(fab); fab.onclick = openMusicSheet;
+}
+function muRenderBar() {
+  const bar = $('#npRow'); if (!bar) return;
+  const n = MU.now;
+  if (!spConnected() || !n || n.idle || !n.title) { bar.hidden = true; return; }
+  bar.hidden = false;
+  bar.innerHTML = `<button class="npinfo" id="npOpen">${n.art ? `<img src="${esc(n.art)}" alt="">` : appTile('spotify')}<span class="t"><b class="ell">${esc(n.title)}</b><span class="ell">${esc(n.artist)}</span></span></button>
+    <span class="npctl" dir="ltr"><button class="npb press" data-mu="prev" aria-label="הקודם">${MU_SVG.prev}</button><button class="npb main press" data-mu="${n.playing ? 'pause' : 'play'}" aria-label="${n.playing ? 'השהיה' : 'ניגון'}">${n.playing ? MU_SVG.pause : MU_SVG.play}</button><button class="npb press" data-mu="next" aria-label="הבא">${MU_SVG.next}</button></span>`;
+  $$('#npRow [data-mu]').forEach(b => b.onclick = () => spCmd(b.dataset.mu));
+  $('#npOpen').onclick = openMusicSheet;
+}
+
+/* the music sheet */
+async function muRenderSheet() {
+  const box = $('#muBody'); if (!box) return;
+  let h = '';
+  if (spConnected()) {
+    const n = MU.now;
+    h += `<div id="muCard" class="mucard">${n && n.title ? `${n.art ? `<img src="${esc(n.art)}" alt="">` : appTile('spotify')}<div class="t"><b class="ell">${esc(n.title)}</b><span class="ell">${esc(n.artist)}${n.dev ? ' · ' + esc(n.dev) : ''}</span></div>` : `${appTile('spotify')}<div class="t"><b>ספוטיפיי מחובר</b><span>${n && n.idle ? 'שום דבר לא מתנגן כרגע' : 'טוען…'}</span></div>`}</div>
+      <div class="muctl" dir="ltr"><button class="npb press" data-mu="prev" aria-label="הקודם">${MU_SVG.prev}</button><button class="npb main press" data-mu="${n && n.playing ? 'pause' : 'play'}" aria-label="ניגון או השהיה">${n && n.playing ? MU_SVG.pause : MU_SVG.play}</button><button class="npb press" data-mu="next" aria-label="הבא">${MU_SVG.next}</button></div>
+      <div class="eyebrow" style="margin:14px 4px 8px">הפלייליסטים שלך</div><div class="mulists hscroll" id="muLists"><span class="psub">טוען…</span></div>`;
+  } else {
+    h += `<button class="mucon press" id="muConnect">${appTile('spotify')}<span class="t"><b>חיבור ספוטיפיי</b><span>רואים מה מתנגן ושולטים בו בלי לצאת מהניווט</span></span><span class="meta">${ICON.chev}</span></button>`;
+  }
+  h += `<div class="eyebrow" style="margin:14px 4px 8px">פתיחת אפליקציה</div><div class="muopen">${Object.keys(APPS).map(k => `<button class="press" data-app="${k}">${appTile(k)}<span>${APPS[k].he}</span></button>`).join('')}</div>`;
+  box.innerHTML = h;
+  $$('#muBody [data-mu]').forEach(b => b.onclick = () => spCmd(b.dataset.mu));
+  $$('#muBody [data-app]').forEach(b => b.onclick = () => openApp(b.dataset.app));
+  if ($('#muConnect')) $('#muConnect').onclick = () => { $('#modal').hidden = true; if (S.driving) { toast('את החיבור עושים פעם אחת, כשהרכב עומד: חשבון ← מוזיקה', 3400); return; } openProfile('music'); };
+  if (spConnected() && $('#muLists')) { const L = await spLists(); const el = $('#muLists'); if (!el) return;
+    el.innerHTML = L.length ? L.map((p, i) => `<button class="mulist press" data-pl="${i}">${p.img ? `<img src="${esc(p.img)}" alt="">` : `<span class="muph">${MU_SVG.note}</span>`}<span class="ell">${esc(p.name)}</span></button>`).join('') : '<span class="psub">אין פלייליסטים</span>';
+    $$('#muLists [data-pl]').forEach(b => b.onclick = () => { spPlayList(L[+b.dataset.pl].uri); toast('מנגנים: ' + L[+b.dataset.pl].name, 1800); }); }
+}
+function openMusicSheet() {
+  const m = $('#modal');
+  m.innerHTML = `<div class="mcard glass strong" role="dialog" aria-modal="true" aria-labelledby="muT"><div class="row"><div class="grow"><div class="ptitle" id="muT">מוזיקה</div></div><button class="circ press" id="muX" style="background:var(--fill)" aria-label="סגירה">${ICON.x}</button></div><div id="muBody"></div></div>`;
+  m.hidden = false; $('#muX').onclick = () => m.hidden = true; m.onclick = e => { if (e.target === m) m.hidden = true; };
+  muRenderSheet(); muPoll();
+}
+
+/* settings page (Account → מוזיקה) */
+function musicSettingsHTML() {
+  const P = muPrefs(), on = spConnected();
+  return `<div class="group glass strong" style="padding:14px 16px">
+    <div class="murow">${appTile('spotify')}<div class="t"><b>Spotify</b><span>${on ? '✓ מחובר. השליטה בנגן דורשת Premium' : 'שליטה מלאה מתוך הניווט'}</span></div></div>
+    ${on ? `<button class="mubtn ghost press" id="spOut">ניתוק</button>` : `
+    <ol class="musteps"><li>נכנסים ל-<b dir="ltr">developer.spotify.com/dashboard</b> עם החשבון של ספוטיפיי ויוצרים App (שם כלשהו, למשל nativ).</li>
+    <li>ב-Redirect URI מדביקים את הכתובת הזו:<div class="mucopy"><code dir="ltr" id="spRedir">${esc(SP_REDIRECT)}</code><button class="press" id="spCopy">העתקה</button></div></li>
+    <li>מסמנים Web API, שומרים, ומעתיקים את ה-<b dir="ltr">Client ID</b> לכאן:</li></ol>
+    <input id="spId" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" placeholder="Spotify Client ID" value="${esc(P.spId || '')}" class="mufield">
+    <button class="mubtn press" id="spGo">התחברות לספוטיפיי</button>`}
+  </div>
+  <div class="group glass strong" style="padding:14px 16px">
+    <div class="murow">${appTile('apple')}<div class="t"><b>Apple Music</b><span>אפל לא מאפשרת לאתרים לשלוט בנגן, אז הכפתור פותח את האפליקציה</span></div><button class="mubtn small press" data-app="apple">פתיחה</button></div>
+    <div class="murow" style="margin-top:12px">${appTile('ytm')}<div class="t"><b>YouTube Music</b><span>גם כאן אין שליטה מבחוץ, הכפתור פותח את האפליקציה</span></div><button class="mubtn small press" data-app="ytm">פתיחה</button></div>
+  </div>
+  <div class="prnote">בזמן ניווט, כפתור התו המוזיקלי בצד פותח את המוזיקה. כשספוטיפיי מחובר, השיר שמתנגן מופיע בתחתית עם כפתורי ניגון.</div>`;
+}
+function bindMusicSettings() {
+  $$('#sProfile [data-app]').forEach(b => b.onclick = () => openApp(b.dataset.app));
+  if ($('#spOut')) $('#spOut').onclick = () => { muForget(); openProfile('music'); toast('ספוטיפיי נותק', 1800); };
+  if ($('#spId')) { const sv = () => { muPrefs().spId = $('#spId').value.trim(); Store.save(); }; $('#spId').oninput = sv; $('#spId').onblur = () => { sv(); unshift(); }; }
+  if ($('#spCopy')) $('#spCopy').onclick = async () => { try { await navigator.clipboard.writeText(SP_REDIRECT); toast('הכתובת הועתקה', 1600); } catch (e) { toast('לא הצלחנו להעתיק. אפשר לסמן ולהעתיק ידנית', 2400); } };
+  if ($('#spGo')) $('#spGo').onclick = () => { muPrefs().spId = $('#spId').value.trim(); Store.save(); spLogin(); };
+}
+function musicSummary() { return spConnected() ? '✓ ספוטיפיי מחובר' : 'Spotify · Apple Music · YouTube'; }
+setTimeout(muPoll, 3000);
+
+/* ================= WHAT IS AROUND AN ADDRESS =================
+   From any address or place: "מה יש בסביבה" lists bars, restaurants, cafés, culture and more within walking distance.
+   The search also understands "ברים ליד ביאליק 5 רמת גן" or "בילוי ליד דיזנגוף סנטר". */
+const NEAR_GROUPS = [
+  ['fun', 'בילוי', ['bar', 'culture', 'food', 'cafe']],
+  ['bar', 'ברים', ['bar']], ['food', 'מסעדות', ['food']], ['cafe', 'בתי קפה', ['cafe']], ['culture', 'תרבות ופנאי', ['culture']],
+  ['park', 'פארקים', ['park']], ['parking', 'חניה', ['parking']], ['shop', 'סופר', ['shop']], ['pharmacy', 'מרקחת', ['pharmacy']], ['fuel', 'דלק', ['fuel']],
+];
+const NEAR_R = 1200, WALK = 75; // metres, metres per minute
+const NEAR_WORDS = [['fun', ['בילוי', 'מקומות בילוי', 'לבלות', 'יציאה', 'לצאת', 'חיי לילה', 'מה יש', 'מה לעשות']], ['bar', ['ברים', 'בר', 'פאב', 'פאבים']], ['food', ['מסעדות', 'מסעדה', 'אוכל', 'לאכול']], ['cafe', ['בתי קפה', 'בית קפה', 'קפה']], ['culture', ['תרבות', 'פנאי', 'קולנוע', 'תיאטרון', 'מוזיאון']], ['park', ['פארק', 'פארקים', 'גינה']], ['parking', ['חניה', 'חנייה', 'חניון']], ['shop', ['סופר', 'מכולת']], ['pharmacy', ['בית מרקחת', 'פארם']], ['fuel', ['דלק', 'תחנת דלק']]];
+const NEAR_SPLIT = /^(.+?)\s+(?:ליד|בסביבת|בסביבה של|באזור|באיזור|קרוב ל-?|קרוב ל|סמוך ל-?|סמוך ל)\s*(.+)$/;
+function nearGroupOf(words) {
+  const w = norm(words);
+  for (const [g, list] of NEAR_WORDS) if (list.some(x => norm(x) === w)) return g;
+  for (const [g, list] of NEAR_WORDS) if (list.some(x => w.includes(norm(x)))) return g;
+  return null;
+}
+function nearList(place, g) {
+  const cats = (NEAR_GROUPS.find(o => o[0] === g) || NEAR_GROUPS[0])[2];
+  return POIS.filter(p => cats.includes(p.cat)).map(p => ({ p, d: Math.hypot(p.x - place.x, p.y - place.y) })).filter(o => o.d <= NEAR_R).sort((a, b) => a.d - b.d).slice(0, 30);
+}
+const walkTxt = d => d < 90 ? 'ממש כאן' : Math.max(1, Math.round(d / WALK)) + ' דק׳ הליכה';
+async function openNearby(place, g = 'fun') {
+  S.nearOf = place; S.nearG = g;
+  if (!TILES.has(tkey(place.x, place.y))) { toast('טוען את האזור…', 1200); try { await ensureArea(place.x, place.y, 1600); } catch (e) { } }
+  const list = nearList(place, g);
+  clearMarkers(m => m.userData.temp); destMark.visible = false;
+  addMarker('dest', place.x, place.y, { temp: true, place }, true);
+  for (const o of list.slice(0, 20)) addMarker(o.p.cat, o.p.x, o.p.y, { temp: true, poi: o.p });
+  const xs = [place.x].concat(list.slice(0, 12).map(o => o.p.x)), ys = [place.y].concat(list.slice(0, 12).map(o => o.p.y));
+  fitBounds(xs, ys, 1.25, 0.42);
+  const items = list.map(o => Object.assign(placeFromPoi(o.p), { meta: walkTxt(o.d) }));
+  const he = (NEAR_GROUPS.find(o => o[0] === g) || NEAR_GROUPS[0])[1];
+  $('#placeBody').innerHTML = `<div class="row" style="margin-bottom:6px"><div class="grow"><div class="ptitle">${esc(he)} בסביבה</div><div class="psub ell">ליד ${esc(place.label)} · עד ${Math.round(NEAR_R / WALK)} דקות הליכה</div></div><button class="circ press" id="nbBack" style="background:var(--fill)" aria-label="חזרה למקום">${ICON.x}</button></div>
+    <div class="hscroll nbpills">${NEAR_GROUPS.map(([k, h, cats]) => `<button class="pill press${k === g ? ' on' : ''}" data-ng="${k}">${k === 'fun' ? '<span aria-hidden="true">✨</span> ' : mono(CATS[cats[0]].d)}${h}</button>`).join('')}</div>
+    ${items.length ? `<div class="list" id="nbList">${items.map((p, i) => listItem(p, i)).join('')}</div>` : `<div class="empty" style="padding:18px 6px">לא מצאנו ${esc(he)} במרחק הליכה מכאן. נסו קטגוריה אחרת.</div>`}`;
+  bindList('#nbList', items, p => pickResult(p));
+  $$('#placeBody [data-ng]').forEach(b => b.onclick = () => openNearby(place, b.dataset.ng));
+  $('#nbBack').onclick = () => openPlace(place);
+  if (S.mode !== 'place') show('place');
+  $('#placeBody').scrollTop = 0;
+}
+{ // "מה יש בסביבה" on every place card
+  const _open = openPlace;
+  openPlace = function (p) {
+    _open(p);
+    const acts = $('#placeBody .acts'); if (!acts || $('#aNear')) return;
+    const b = document.createElement('button'); b.className = 'act'; b.id = 'aNear';
+    b.innerHTML = `<i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="12" r="2.4" fill="currentColor"/><circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2"/></svg></i>בסביבה`;
+    b.onclick = () => openNearby(p, 'fun');
+    acts.insertBefore(b, acts.firstChild);
+  };
+}
+{ // search: "<what> ליד <address>"
+  GRP.n = 'מה יש בסביבה';
+  const _search = searchAll;
+  searchAll = function (raw) {
+    const m = String(raw || '').trim().match(NEAR_SPLIT);
+    if (!m) return _search(raw);
+    const g = nearGroupOf(m[1]);
+    if (!g) return _search(raw);
+    const where = _search(m[2]).filter(r => r.kind !== 'cat' && r.x != null && !(r.kind === 'home' && !Store.data.home)).slice(0, 4);
+    const he = NEAR_GROUPS.find(o => o[0] === g)[1], cat = NEAR_GROUPS.find(o => o[0] === g)[2][0];
+    return where.map((r, i) => ({ kind: 'near', grp: 'n', cat, label: `${he} ליד ${r.label}`, sub: r.sub || '', x: r.x, y: r.y, meta: '', near: { g, place: r }, score: 5000 - i }));
+  };
+  const _pick = pickResult;
+  pickResult = async function (p) {
+    if (!p || p.kind !== 'near') return _pick(p);
+    let pl = Object.assign({}, p.near.place);
+    if (pl.kind === 'home' || pl.kind === 'work') pl = Object.assign({}, Store.data[pl.kind], { label: pl.sub || pl.label });
+    if (pl.need || !TILES.has(tkey(pl.x, pl.y))) { toast('טוען את האזור…', 1200); try { await ensureArea(pl.x, pl.y, 1600); } catch (e) { } if (pl.need) { const a = findAddress(pl.need.key, pl.need.num); if (a) { pl.x = a.x; pl.y = a.y; } delete pl.need; } }
+    if (pl.kind === 'city') pl.kind = 'pin';
+    S.place = pl; openNearby(pl, p.near.g);
+  };
+}
 
 /* ================= BOOT ================= */
 function fitDevice() {
