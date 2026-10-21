@@ -206,10 +206,15 @@ input{font:inherit;color:inherit}
 .empty{padding:14px 4px;font-size:14px;color:var(--mute);line-height:1.5}
 
 /* ---------- auth ---------- */
-#sAuth{position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;justify-content:flex-end;padding:0 10px calc(var(--bot) + 4px)}
+#sAuth{position:absolute;inset:0;z-index:60;isolation:isolate;display:flex;flex-direction:column;justify-content:flex-end;padding:0 10px calc(var(--bot) + 4px)}
 .brand{padding:0 14px 16px;display:flex;flex-direction:column;gap:6px}
-.brand h1{margin:0;font-size:56px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--ink);text-shadow:0 2px 24px var(--map)}
-.brand p{margin:0;font-size:16.5px;line-height:1.45;color:var(--ink);max-width:28ch;text-shadow:0 1px 14px var(--map)}
+.brand p{margin:0;font-size:16.5px;line-height:1.45;color:#fff;max-width:28ch;text-shadow:0 1px 12px rgba(0,0,0,.6)}
+#sAuth::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(to top,rgba(4,14,11,.92) 0,rgba(4,14,11,.72) 42%,rgba(4,14,11,.25) 72%,rgba(4,14,11,0) 88%)}
+.nlogo{display:flex;align-items:center;gap:12px;direction:ltr;align-self:flex-start}
+.nlogo .nicon{width:52px;height:52px;border-radius:14px;flex:none;box-shadow:0 10px 30px -8px rgba(47,214,166,.5)}
+.nword{font:800 46px/1 'Poppins','Rubik',system-ui,sans-serif;letter-spacing:-.035em;color:#fff;display:flex;align-items:flex-end;text-shadow:0 2px 18px rgba(0,0,0,.45)}
+.nword i{display:inline-block;width:.24em;height:.24em;margin:0 0 .08em .06em;background:#2fd6a6;border-radius:.05em}
+#aside .nlogo{margin-bottom:6px}#aside .nword{color:var(--ink);text-shadow:none;font-size:40px}#aside .nicon{width:46px;height:46px}
 .auth-card{border-radius:34px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:12px}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--fill);border-radius:999px;padding:3px}
 .seg button{height:38px;border-radius:999px;font-weight:600;font-size:14.5px;color:var(--ink2)}
@@ -431,8 +436,8 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
 
 <div id="stage">
   <aside id="aside">
-    <h1>נתיב</h1>
-    <p>אפליקציית ניווט לטלפון, על מפה אמיתית ופתוחה של גוש דן והשרון: מרעננה וכפר סבא ועד בני ברק, פתח תקווה ותל אביב.</p>
+    <div class="nlogo" role="img" aria-label="nativ."><svg class="nicon" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="nlA2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#173a33"/><stop offset="1" stop-color="#06120f"/></linearGradient><linearGradient id="nlM2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b4f7dc"/><stop offset=".55" stop-color="#5fe3b8"/><stop offset="1" stop-color="#2fc79a"/></linearGradient><linearGradient id="nlF2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d5a47" stop-opacity="0"/><stop offset="1" stop-color="#0b3d31" stop-opacity=".75"/></linearGradient></defs><rect width="120" height="120" rx="30" fill="url(#nlA2)"/><rect x="1.5" y="1.5" width="117" height="117" rx="28.5" fill="none" stroke="#5fe3b8" stroke-opacity=".25"/><path d="M40 92V49a15 15 0 0 1 15-15h3a12 12 0 0 1 10.3 5.8L90 86" fill="none" stroke="url(#nlM2)" stroke-width="19" stroke-linejoin="round"/><path d="M66 38L90 86" fill="none" stroke="url(#nlF2)" stroke-width="19"/></svg><span class="nword">nativ<i></i></span></div>
+    <p>אפליקציית ניווט לטלפון, על מפה אמיתית ופתוחה של כל הארץ, מאילת ועד מטולה.</p>
     <ul id="asideStats"></ul>
     <small>מקור: OpenStreetMap. זמני הרמזורים והתנועה הם הדמיה עד לקבלת נתונים מהרשויות.</small>
   </aside>
@@ -440,7 +445,7 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
     <canvas id="gl" aria-label="מפה תלת־ממדית"></canvas>
 
     <section id="sAuth" hidden>
-      <div class="brand"><h1>נתיב</h1><p>הדרך שלך, ברורה מראש. כל נתיב, כל רמזור, וכל עצירה ששווה לעשות.</p></div>
+      <div class="brand"><div class="nlogo" role="img" aria-label="nativ."><svg class="nicon" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="nlA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#173a33"/><stop offset="1" stop-color="#06120f"/></linearGradient><linearGradient id="nlM" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b4f7dc"/><stop offset=".55" stop-color="#5fe3b8"/><stop offset="1" stop-color="#2fc79a"/></linearGradient><linearGradient id="nlF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d5a47" stop-opacity="0"/><stop offset="1" stop-color="#0b3d31" stop-opacity=".75"/></linearGradient></defs><rect width="120" height="120" rx="30" fill="url(#nlA)"/><rect x="1.5" y="1.5" width="117" height="117" rx="28.5" fill="none" stroke="#5fe3b8" stroke-opacity=".25"/><path d="M40 92V49a15 15 0 0 1 15-15h3a12 12 0 0 1 10.3 5.8L90 86" fill="none" stroke="url(#nlM)" stroke-width="19" stroke-linejoin="round"/><path d="M66 38L90 86" fill="none" stroke="url(#nlF)" stroke-width="19"/></svg><span class="nword">nativ<i></i></span></div><p>הדרך שלך, ברורה מראש. כל נתיב, כל רמזור, וכל עצירה ששווה לעשות.</p></div>
       <div class="auth-card glass strong" id="authCard"></div>
     </section>
 
@@ -1078,9 +1083,9 @@ bldMat.onBeforeCompile = sh => {
       if (uNight > 0.0) {
         vec3 wc = mix(vec3(1.0, 0.76, 0.42), vec3(0.78, 0.86, 1.0), h21(bCell * 1.7));
         totalEmissiveRadiance += wc * bWin * bLit * 0.75 * uNight;                                   // lit flats
-        totalEmissiveRadiance += vec3(0.05, 0.07, 0.13) * bWin * (1.0 - bLit) * uNight;              // dark glass catching the city glow
+        totalEmissiveRadiance += vec3(0.04, 0.09, 0.09) * bWin * (1.0 - bLit) * uNight;              // dark glass catching the city glow
         totalEmissiveRadiance += vec3(1.0, 0.7, 0.4) * 0.16 * uNight * bWall * (1.0 - smoothstep(0.0, 7.0, vWin.y)); // shop fronts and street light on the ground floor
-        totalEmissiveRadiance += vec3(0.10, 0.12, 0.2) * uNight * bWall * smoothstep(0.0, 60.0, vWin.y) * 0.5;      // upper floors catch the sky
+        totalEmissiveRadiance += vec3(0.08, 0.14, 0.13) * uNight * bWall * smoothstep(0.0, 60.0, vWin.y) * 0.5;      // upper floors catch the sky
       }`);
 };
 const BLD_KCOL = { light: [[1, 1, 1], [0.97, 0.98, 1], [0.95, 0.95, 0.96], [0.99, 0.98, 1], [0.99, 0.99, 0.99]], dark: [[0.17, 0.18, 0.22], [0.16, 0.18, 0.23], [0.15, 0.16, 0.19], [0.17, 0.18, 0.22], [0.17, 0.18, 0.21]] };
@@ -1650,7 +1655,7 @@ function sunPos(date, lat = 32.08, lon = 34.81) { // NOAA-style approximation; r
 }
 const C = h => new THREE.Color(h);
 const TONES = {
-  night: { top: C(0x030b0a), hor: C(0x0e2a26), ground: C(0x0a1513), side: C(0x121f1d), asph: C(0x2b3836), hi: C(0x283432), mark: C(0xc3cbe8), cross: C(0xd2d8ef), green: C(0x0f2019), wood: C(0x0d1c16), pitch: C(0x12261e), water: C(0x0b1d38), island: C(0x12221c), bld: [0.24, 0.31, 0.30], hs: C(0x7f8cff), hg: C(0x090b16), hi2: 0.8, sunc: C(0x9fb2ff), suni: 0.22, win: 1, ui: 'dark', acc: '#33dcae', acc2: '#8ef0d0' },
+  night: { top: C(0x030b0a), hor: C(0x0e2a26), ground: C(0x0a1513), side: C(0x121f1d), asph: C(0x2b3836), hi: C(0x283432), mark: C(0xc3cbe8), cross: C(0xd2d8ef), green: C(0x0f2019), wood: C(0x0d1c16), pitch: C(0x12261e), water: C(0x0b1d38), island: C(0x12221c), bld: [0.24, 0.31, 0.30], hs: C(0x86c9bd), hg: C(0x090b16), hi2: 0.8, sunc: C(0x9fb2ff), suni: 0.22, win: 1, ui: 'dark', acc: '#33dcae', acc2: '#8ef0d0' },
   dusk: { top: C(0x23285e), hor: C(0xff7a7a), ground: C(0x2a2638), side: C(0x332d42), asph: C(0x4f4a66), hi: C(0x48435e), mark: C(0xf0eaf8), cross: C(0xf4effa), green: C(0x2b3a37), wood: C(0x24332f), pitch: C(0x30413c), water: C(0x3a4f8a), island: C(0x2b3a37), bld: [0.4, 0.36, 0.5], hs: C(0xe6a6c8), hg: C(0x2a2040), hi2: 0.85, sunc: C(0xff7a5c), suni: 0.55, win: 0.65, ui: 'dark', acc: '#33dcae', acc2: '#ff8fb0' },
   dawn: { top: C(0x30477f), hor: C(0xffb39a), ground: C(0x3a3a4a), side: C(0x45445a), asph: C(0x5f5d74), hi: C(0x57556c), mark: C(0xf3f0fa), cross: C(0xf6f4fb), green: C(0x34463e), wood: C(0x2e3f38), pitch: C(0x3a4d44), water: C(0x5269a0), island: C(0x34463e), bld: [0.6, 0.53, 0.6], hs: C(0xffc4b4), hg: C(0x3a3048), hi2: 0.85, sunc: C(0xffa384), suni: 0.5, win: 0.45, ui: 'dark', acc: '#2fd6a6', acc2: '#ffc29a' },
   golden: { top: C(0x6f93d8), hor: C(0xffc58e), ground: C(0xf1e5d3), side: C(0xe7d8c1), asph: C(0x8f8784), hi: C(0x857d7a), mark: C(0xfffaf2), cross: C(0xfffaf2), green: C(0xc6d797), wood: C(0xb5cc88), pitch: C(0xcadc9e), water: C(0x86bde3), island: C(0xc6d797), bld: [0.97, 0.9, 0.84], hs: C(0xffe6cc), hg: C(0xb8a48c), hi2: 0.9, sunc: C(0xffc896), suni: 0.75, win: 0.08, ui: 'light', acc: '#0fae84', acc2: '#ffb34d' },
@@ -1769,7 +1774,7 @@ function applyTone(force) {
   const pref = (Store && Store.data && Store.data.prefs && Store.data.prefs.tone) || 'auto';
   const r = pref === 'auto' ? toneFor(new Date()) : { t: TONES[pref], name: pref };
   const T = r.t; TONE = Object.assign({ name: r.name }, T);
-  const explicit = document.documentElement.getAttribute('data-theme');
+  const explicit = (Store && Store.data && Store.data.prefs && Store.data.prefs.ui) || null; // the screens follow the map's time of day
   const ui = explicit || T.ui; DARK = ui === 'dark';
   const dev = $('#device'); dev.setAttribute('data-ui', ui); dev.style.setProperty('--accent', T.acc); dev.style.setProperty('--accent2', T.acc2);
   const fogC = T.hor.clone();
@@ -4014,7 +4019,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792540173';
+const APP_VERSION = '1792540814';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
