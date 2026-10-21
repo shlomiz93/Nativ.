@@ -3826,7 +3826,7 @@ function labelTex(L) {
 }
 const labelGroup = new THREE.Group(); scene.add(labelGroup);
 const labelPool = [];
-for (let i = 0; i < 22; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false, fog: false })); sp.center.set(0.5, -0.75); sp.renderOrder = 39; sp.visible = false; labelGroup.add(sp); labelPool.push(sp); }
+for (let i = 0; i < 22; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false, fog: false })); sp.center.set(0.5, -0.75); sp.renderOrder = 42; sp.visible = false; labelGroup.add(sp); labelPool.push(sp); }
 function updateBuildingLabels() {
   const on = Store.data.prefs.labels !== false && (S.mode === 'home' || S.mode === 'place' || S.mode === 'route');
   if (!on) { labelPool.forEach(s => s.visible = false); return; }
@@ -3839,15 +3839,24 @@ function updateBuildingLabels() {
     pick.push([d - (L.big ? 400 : 0) - L.rest.length * 20, L]);
   }
   pick.sort((a, b) => a[0] - b[0]);
-  const used = [];
+  const used = [], boxes = [], W = canvas.clientWidth, H = canvas.clientHeight, P11 = camera.projectionMatrix.elements[5];
+  const topLimit = 125, botLimit = H - (S.sheetH || 0) - 150, v = new THREE.Vector3();
   let k = 0;
+  const maxN = S.mode === 'route' ? 3 : Math.min(labelPool.length, Math.max(6, Math.round(W * H / 26000)));
   for (const [, L] of pick) {
-    if (k >= (S.mode === 'route' ? 3 : labelPool.length)) break;
+    if (k >= maxN) break;
     if (used.some(u => Math.hypot(u.x - L.x, u.y - L.y) < zoom * 0.09)) continue; // keep them from piling up
-    used.push(L);
-    const sp = labelPool[k++], tex = labelTex(L);
-    if (sp.material.map !== tex) { sp.material.map = tex; sp.material.needsUpdate = true; }
     const hgt = (L.big ? 0.078 : 0.062) * (S.mode === 'nav' ? 0.9 : 1);
+    // screen-space check: labels must not cover each other or sit under the controls
+    v.set(L.x, L.h + 3, -L.y).project(camera); if (v.z > 1 || Math.abs(v.x) > 1.1) continue;
+    const tex = labelTex(L), sx = (v.x + 1) / 2 * W, sy = (1 - v.y) / 2 * H, ph = hgt * H / 2 * P11, pw = ph * (L.ar || 3);
+    const bx = { a: sx - pw / 2 - 6, b: sx + pw / 2 + 6, t: sy - ph * 1.75 - 6, u: sy - ph * 0.75 + 6 };
+    if (bx.t < topLimit || bx.u > botLimit || bx.a < 4 || bx.b > W - 4) continue;
+    if (bx.a < 76 && bx.t < 370) continue; // the button column on the left
+    if (boxes.some(q => bx.a < q.b && bx.b > q.a && bx.t < q.u && bx.u > q.t)) continue;
+    boxes.push(bx); used.push(L);
+    const sp = labelPool[k++];
+    if (sp.material.map !== tex) { sp.material.map = tex; sp.material.needsUpdate = true; }
     sp.scale.set(hgt * L.ar, hgt, 1); sp.material.sizeAttenuation = false;
     sp.position.set(L.x, L.h + 3, -L.y); sp.visible = true;
   }
@@ -4324,7 +4333,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792588030';
+const APP_VERSION = '1792594415';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
