@@ -2535,8 +2535,8 @@ function openProfile() {
   $('#pLabels').onchange = e => { Store.data.prefs.labels = e.target.checked; Store.save(); };
   $('#pSide').onchange = e => { Store.data.prefs.side = e.target.checked; Store.save(); };
   $('#pRain').onchange = e => setRainPreview(e.target.checked);
-  const ttSave = () => { const v = $('#pTT').value.trim(); if (v !== (Store.data.prefs.ttKey || '')) { Store.data.prefs.ttKey = v; Store.data.prefs.ttOk = false; Store.save(); } return v; };
-  $('#pTT').onchange = ttSave; $('#pTT').onblur = () => { ttSave(); unshift(); };
+  const ttSave = () => { const v = $('#pTT').value.trim(); if (v !== (Store.data.prefs.ttKey || '')) { Store.data.prefs.ttKey = v; Store.data.prefs.ttOk = false; Store.save(); ttKeep(v); } return v; };
+  $('#pTT').onchange = ttSave; $('#pTT').oninput = ttSave; $('#pTT').onblur = () => { ttSave(); unshift(); };
   $('#pTTgo').onclick = async () => { const st = $('#pTTst'), v = ttSave(); $('#pTT').blur(); unshift();
     if (!v) { st.className = 'ttstat'; st.textContent = 'אין מפתח, התנועה בזמן אמת כבויה'; return; }
     st.className = 'ttstat'; st.textContent = 'בודקים מול TomTom…';
@@ -2930,7 +2930,7 @@ function openMyData() {
 function deleteAccount() {
   confirmBox('למחוק את החשבון?', 'נמחק את פרטי החשבון, הבית, העבודה, המקומות השמורים וכל היסטוריית החיפושים. אי אפשר לשחזר.', 'מחיקה לצמיתות', () => {
     Store.data = { account: null, home: null, work: null, favs: [], recent: [], prefs: { voice: false } };
-    Store.save(); try { localStorage.removeItem('nativ.v1'); } catch (e) { }
+    Store.save(); try { localStorage.removeItem('nativ.v1'); ttKeep(''); } catch (e) { }
     refreshMarkers(); authState = { tab: 'signup', step: 'form', contact: '', name: '' }; renderAuth(); show('auth'); cam.mode = 'orbit';
     toast('החשבון והנתונים נמחקו');
   }, true);
@@ -3989,6 +3989,17 @@ setInterval(() => {
    and a heavy jam ahead is announced. Without a key nothing changes. */
 const TRAF = { busy: false };
 const trafKey = () => (Store.data.prefs.ttKey || '').trim();
+/* The key is kept in three places on the phone so it survives restarts and updates. */
+function ttKeep(v) {
+  try { localStorage.setItem('nativ.tt', v || ''); } catch (e) { }
+  try { if (window.caches) caches.open('nativ-prefs').then(c => c.put('./__tt', new Response(v || ''))).catch(() => { }); } catch (e) { }
+}
+(async () => {
+  if (trafKey()) { ttKeep(trafKey()); return; }
+  let v = ''; try { v = localStorage.getItem('nativ.tt') || ''; } catch (e) { }
+  if (!v) try { if (window.caches) { const c = await caches.open('nativ-prefs'); const r = await c.match('./__tt'); if (r) v = await r.text(); } } catch (e) { }
+  v = (v || '').trim(); if (v) { Store.data.prefs.ttKey = v; Store.data.prefs.ttOk = true; Store.save(); ttKeep(v); }
+})();
 const toLL = (x, y) => [LAT0 + y / KY, LON0 + x / KX];
 async function trafficFor(r) {
   const key = trafKey(); if (!key || !r || TRAF.busy) return;
@@ -4215,7 +4226,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792580719';
+const APP_VERSION = '1792581179';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
