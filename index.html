@@ -131,7 +131,11 @@
 #q{-webkit-appearance:none;appearance:none}#q::-webkit-search-cancel-button,#q::-webkit-search-decoration{-webkit-appearance:none;display:none}
 [hidden]{display:none!important}
 *,*::before,*::after{box-sizing:border-box}
-html,body{height:100%;overflow:hidden}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+#device input,#device textarea,#device select{box-sizing:border-box;max-width:100%}
+#device .scroll,#device section{overflow-x:hidden}
+.ttstat{margin-top:8px;font-size:13px;line-height:1.4;color:var(--ink2)}.ttstat.ok{color:var(--accent)}.ttstat.bad{color:var(--bad)}
+.ttrow{display:flex;gap:8px;align-items:center}.ttrow input{flex:1;min-width:0}.ttrow button{flex:none;height:44px;padding:0 16px;border-radius:14px;font-weight:700;background:var(--accent);color:#04201a}
 body{background:var(--stage);color:var(--ink);font-family:var(--f);-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
 input{font:inherit;color:inherit}
@@ -2514,7 +2518,7 @@ function openProfile() {
     ${vehicleGroupHTML()}
     <div class="sec"><span class="eyebrow">מראה המפה</span><span class="tone-chip"><i></i>${esc(TONE_NAMES[(Store.data.prefs.tone || 'auto')])}</span></div><div class="group glass strong" style="padding:10px 12px"><div class="psub" style="margin-bottom:4px">באוטומטי, הצבעים, האור והשמיים עוקבים אחרי מיקום השמש האמיתי בשמי המרכז — בוקר, צהריים, שקיעה ולילה.</div><div class="tonepick"><button data-tone="auto" style="background:linear-gradient(135deg,#3d8cff,#ffc58e 45%,#ff5d8f 70%,#141a3c)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'auto'}">${TONE_NAMES.auto}</button><button data-tone="morning" style="background:linear-gradient(160deg,#5aa2ff,#dcefff)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'morning'}">${TONE_NAMES.morning}</button><button data-tone="noon" style="background:linear-gradient(160deg,#3d8cff,#cfe4ff)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'noon'}">${TONE_NAMES.noon}</button><button data-tone="golden" style="background:linear-gradient(160deg,#6f93d8,#ffc58e)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'golden'}">${TONE_NAMES.golden}</button><button data-tone="dusk" style="background:linear-gradient(160deg,#23285e,#ff7a7a)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'dusk'}">${TONE_NAMES.dusk}</button><button data-tone="night" style="background:linear-gradient(160deg,#050816,#1a2250)" aria-pressed="${(Store.data.prefs.tone || 'auto') === 'night'}">${TONE_NAMES.night}</button></div></div>
     <div class="group glass strong"><div class="list"><label class="li" style="cursor:pointer"><span class="t"><b>הנחיות קוליות</b><span>הכרזה לפני כל פנייה</span></span><input type="checkbox" class="switch" id="pVoice" ${S.voice ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>הצעת חניה לפני היעד</b><span>חניונים קרובים כשנשארו 600 מטר</span></span><input type="checkbox" class="switch" id="pPark" ${Store.data.prefs.park !== false ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>דיווח בקול: "נתיב…"</b><span>בזמן נסיעה, אומרים "נתיב" ואז מה ראיתם. דורש מיקרופון</span></span><input type="checkbox" class="switch" id="pWake" ${Store.data.prefs.wake ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>המלצת מהירות לגל ירוק</b><span>ניסיוני · לעולם לא מעל המהירות המותרת</span></span><input type="checkbox" class="switch" id="pGlosa" ${Store.data.prefs.glosa ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>שמירת נסיעות ב"המסע שלי"</b><span>אוטומטית בסוף כל נסיעה. כבוי: שואלים בכל פעם</span></span><input type="checkbox" class="switch" id="pJourney" ${Store.data.prefs.journey ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>שמות על מבנים</b><span>שם המקום והחנויות שבתוכו מעל כל מבנה</span></span><input type="checkbox" class="switch" id="pLabels" ${Store.data.prefs.labels !== false ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>מה יש בצדי הדרך</b><span>שם קצר של מקום מימין ומשמאל בזמן נסיעה</span></span><input type="checkbox" class="switch" id="pSide" ${Store.data.prefs.side !== false ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>תצוגה מקדימה: גשם</b><span>מראה איך המפה וההתראות נראים בגשם</span></span><input type="checkbox" class="switch" id="pRain" ${WX.preview ? 'checked' : ''}></label><label class="li" style="cursor:pointer"><span class="t"><b>שמירת היסטוריית חיפושים</b><span>להשלמה אוטומטית בזמן הקלדה</span></span><input type="checkbox" class="switch" id="pHist" ${Store.data.prefs.history !== false ? 'checked' : ''}></label></div></div>
-    <div class="group glass strong"><h4>תנועה בזמן אמת</h4><div class="info" style="margin-bottom:8px">עם מפתח של TomTom (חינמי עד 2,500 בדיקות ביום) המסלול מתחשב בעומסים בזמן אמת. בלי מפתח, זמני הנסיעה מחושבים לפי מהירויות רגילות.</div><input id="pTT" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" placeholder="TomTom API key" value="${esc(Store.data.prefs.ttKey || '')}" style="width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--fill2, rgba(127,127,127,.1));color:var(--ink);font:500 15px var(--f, inherit)"></div>
+    <div class="group glass strong"><h4>תנועה בזמן אמת</h4><div class="info" style="margin-bottom:8px">עם מפתח של TomTom (חינמי עד 2,500 בדיקות ביום) המסלול מתחשב בעומסים בזמן אמת. בלי מפתח, זמני הנסיעה מחושבים לפי מהירויות רגילות.</div><div class="ttrow"><input id="pTT" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" placeholder="TomTom API key" value="${esc(Store.data.prefs.ttKey || '')}" style="padding:12px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--fill2, rgba(127,127,127,.1));color:var(--ink);font:500 15px var(--f, inherit)"><button class="press" id="pTTgo">בדיקה</button></div><div class="ttstat" id="pTTst">${Store.data.prefs.ttKey ? (Store.data.prefs.ttOk ? '✓ המפתח נבדק ועובד' : 'שמור. הקישו "בדיקה" כדי לוודא שהוא עובד') : 'אין מפתח, התנועה בזמן אמת כבויה'}</div></div>
     <div class="group glass strong"><h4>רמזורים</h4><div class="info"><b>הספירה לאחור עובדת כרגע על תזמון מדומה.</b> אין בישראל ממשק פתוח לזמני רמזורים. פנינו לנתיבי איילון, לעיריות בני ברק וגבעתיים ולמשרד התחבורה, ומקור אמיתי יוצג באותה טבעת ברגע שיגיע.</div></div>
     <div class="group glass strong"><h4>המפה</h4><div class="stats"><div><b>${(WAYS.length / 1000).toFixed(1)}K</b><span>קטעי כביש</span></div><div><b>${SIG.size.toLocaleString('he-IL')}</b><span>רמזורים</span></div><div><b>${(SIGNS.length / 1000).toFixed(1)}K</b><span>תמרורים</span></div><div><b>${(ADDR.length / 1000).toFixed(1)}K</b><span>כתובות</span></div><div><b>${(POIS.length / 1000).toFixed(1)}K</b><span>מקומות</span></div><div><b>${(bldInfo.count / 1000).toFixed(1)}K</b><span>מבנים</span></div></div><div class="info">מקור: OpenStreetMap. מספר הנתיבים רשום ל־${lanesPct}% מהכבישים, ובשאר הוא משוער לפי סוג הכביש. כתובת שחסרה במפה מסומנת "מיקום משוער".</div></div>
  <div class="group glass strong"><h4>פרטיות ומידע משפטי</h4><div class="list">${[['data', 'הנתונים שלי'], ['terms', 'תנאי שימוש'], ['privacy', 'מדיניות פרטיות'], ['safety', 'בטיחות בנהיגה'], ['access', 'הצהרת נגישות'], ['licenses', 'מקורות ורישיונות']].map(([k, he]) => `<button class="li" data-lg="${k}"><span class="t"><b>${he}</b></span><span class="meta">${ICON.chev}</span></button>`).join('')}<button class="li" id="pDel"><span class="t"><b style="color:var(--bad)">מחיקת חשבון ונתונים</b><span>מוחק הכל לצמיתות</span></span></button></div></div>
@@ -2530,7 +2534,13 @@ function openProfile() {
   $('#pLabels').onchange = e => { Store.data.prefs.labels = e.target.checked; Store.save(); };
   $('#pSide').onchange = e => { Store.data.prefs.side = e.target.checked; Store.save(); };
   $('#pRain').onchange = e => setRainPreview(e.target.checked);
-  $('#pTT').onchange = e => { Store.data.prefs.ttKey = e.target.value.trim(); Store.save(); toast(Store.data.prefs.ttKey ? 'נשמר. התנועה תיבדק במסלול הבא' : 'התנועה בזמן אמת כבויה'); };
+  const ttSave = () => { const v = $('#pTT').value.trim(); if (v !== (Store.data.prefs.ttKey || '')) { Store.data.prefs.ttKey = v; Store.data.prefs.ttOk = false; Store.save(); } return v; };
+  $('#pTT').onchange = ttSave; $('#pTT').onblur = () => { ttSave(); unshift(); };
+  $('#pTTgo').onclick = async () => { const st = $('#pTTst'), v = ttSave(); $('#pTT').blur(); unshift();
+    if (!v) { st.className = 'ttstat'; st.textContent = 'אין מפתח, התנועה בזמן אמת כבויה'; return; }
+    st.className = 'ttstat'; st.textContent = 'בודקים מול TomTom…';
+    const res = await trafficTest(v); Store.data.prefs.ttOk = res.ok; Store.save();
+    st.className = 'ttstat ' + (res.ok ? 'ok' : 'bad'); st.textContent = res.msg; toast(res.ok ? 'המפתח עובד ✓' : 'המפתח לא עובד', 2200); };
   $('#pHist').onchange = e => { Store.data.prefs.history = e.target.checked; if (!e.target.checked) Store.data.recent = []; Store.save(); };
   $('#pVoice').onchange = e => { S.voice = e.target.checked; Store.data.prefs.voice = S.voice; Store.save(); };
   $('#pPark').onchange = e => { Store.data.prefs.park = e.target.checked; Store.save(); };
@@ -4046,6 +4056,21 @@ function trafficLineHTML() {
   }, 5000);
 }
 
+/* one live request near you, to prove the key works and show what the road looks like right now */
+async function trafficTest(key) {
+  const [lat, lon] = toLL(egoX, egoY);
+  try {
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch(`https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/12/json?point=${lat.toFixed(5)},${lon.toFixed(5)}&unit=KMPH&key=${encodeURIComponent(key)}`, { signal: ctl.signal });
+    if (r.status === 401 || r.status === 403) return { ok: false, msg: 'TomTom דחו את המפתח. בדקו שהעתקתם אותו במלואו ושיש לו הרשאה ל-Traffic API' };
+    if (r.status === 429) return { ok: true, msg: '✓ המפתח עובד (הגעתם למכסה היומית, נסו שוב מחר)' };
+    if (!r.ok) return { ok: false, msg: 'TomTom לא ענו (' + r.status + '). נסו שוב בעוד רגע' };
+    const f = (await r.json()).flowSegmentData;
+    if (!f) return { ok: true, msg: '✓ המפתח עובד' };
+    return { ok: true, msg: `✓ המפתח עובד · בכביש שלידכם עכשיו: ${Math.round(f.currentSpeed)} קמ״ש מתוך ${Math.round(f.freeFlowSpeed)} בדרך כלל` };
+  } catch (e) { return { ok: false, msg: 'אין חיבור ל-TomTom כרגע. בדקו אינטרנט ונסו שוב' }; }
+}
+
 /* ================= DRIVE VIEW DETAILS =================
    A quiet ring under your car, and reported hazards drawn on the road itself: a red striped zone with cones,
    on the side of the road where people reported it. */
@@ -4181,7 +4206,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792575651';
+const APP_VERSION = '1792578039';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -4221,6 +4246,9 @@ function fitDevice() {
   if (st) st.style.gap = big && innerWidth >= 1000 ? (64 - (1 - s) * 402) + 'px' : '';
 }
 fitDevice(); addEventListener('resize', fitDevice);
+// iOS scrolls even hidden-overflow boxes sideways when a field is focused; put everything back in place
+function unshift() { for (const el of [document.scrollingElement, document.documentElement, document.body, $('#stage'), $('#device')]) if (el && el.scrollLeft) el.scrollLeft = 0; if (window.scrollX) window.scrollTo(0, window.scrollY); }
+document.addEventListener('focusout', () => setTimeout(unshift, 60)); addEventListener('resize', unshift); setInterval(unshift, 1500);
 function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w < h ? 60 : 50; camera.updateProjectionMatrix(); layoutFabs(); }
 addEventListener('resize', resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe($('#device'));
