@@ -539,6 +539,21 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
 .plate{flex:1;display:flex;align-items:stretch;height:50px;border-radius:10px;overflow:hidden;background:#ffd21f;box-shadow:inset 0 0 0 2px #1b1b1b}
 .plate i{display:grid;place-items:center;width:30px;background:#1f4fbf;color:#fff;font-style:normal;font-weight:700;font-size:12px}
 .plate input{flex:1;min-width:0;border:0;background:transparent;font:700 22px var(--fn);letter-spacing:.06em;text-align:center;color:#111;outline:none}
+
+/* hop engine */
+.hopfield{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;box-sizing:border-box;padding:12px 16px;min-height:60px;border-radius:18px;background:var(--fill);border:1px solid var(--hair);text-align:right;color:var(--ink)}
+.hopfield small{font-size:12px;color:var(--mute,var(--ink2));font-weight:600}.hopfield span{font-size:17px;font-weight:700}
+#hopOut{display:flex;flex-direction:column;gap:10px;margin-top:2px}
+.hopv{border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;background:linear-gradient(135deg,color-mix(in srgb,var(--ok) 22%,transparent),color-mix(in srgb,var(--accent) 14%,transparent));border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}
+.hopv b{font-size:19px}.hopv span{font-size:14px;color:var(--ink2)}
+.hopv.stay,.hopv.walk,.hopv.none{background:linear-gradient(135deg,color-mix(in srgb,var(--warn) 22%,transparent),color-mix(in srgb,var(--accent) 10%,transparent));border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.hopc{display:flex;flex-direction:column;gap:6px;text-align:right;padding:14px 16px;border-radius:20px;background:var(--fill);border:1px solid var(--hair);color:var(--ink)}
+.hopc.best{background:linear-gradient(135deg,var(--fill2),color-mix(in srgb,var(--accent) 12%,transparent));border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.hoptop{display:flex;justify-content:space-between;align-items:center;gap:8px}.hoptop b{font-size:17px}
+.hopbadge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--fill2)}
+.hopbig{font-size:14px;color:var(--ink2)}.hopeta{display:flex;flex-direction:column}.hopeta b{font-size:26px;letter-spacing:-.01em}.hopeta span{font-size:13px;color:var(--ink2)}
+.hopnote{font-size:13px;color:var(--ink2);padding:2px 4px;line-height:1.5}.hopnote.bad{color:var(--bad)}
+.hopmap{background:var(--fill)!important;color:var(--ink)!important}
 </style>
 
 <div id="stage">
@@ -4535,7 +4550,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1792603071';
+const APP_VERSION = '1793474303';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -4995,6 +5010,155 @@ async function openNearby(place, g = 'fun') {
     if (pl.need || !TILES.has(tkey(pl.x, pl.y))) { toast('טוען את האזור…', 1200); try { await ensureArea(pl.x, pl.y, 1600); } catch (e) { } if (pl.need) { const a = findAddress(pl.need.key, pl.need.num); if (a) { pl.x = a.x; pl.y = a.y; } delete pl.need; } }
     if (pl.kind === 'city') pl.kind = 'pin';
     S.place = pl; openNearby(pl, p.near.g);
+  };
+}
+
+/* ================= HOP ENGINE: "מקפיצים אותי" =================
+   Someone else drives from A to B and I need to get to C. Where along THEIR route is the best place for me to get off?
+   The driver's route is fixed, so every point on it is a candidate. For each one we know when the car gets there and how
+   long it takes me to walk to C over the road graph. We also compare against two alternatives: riding all the way, and
+   not joining at all. If hopping does not help, we say so.
+
+   Public transport is a plug-in: set HOP.transit = { arrive(node, tSec) -> { arr, hi, label } } and it is used for every
+   candidate. Until it is connected, results cover car + walking only and the screen says so. */
+const HOP = { transit: null, drv: null, me: null, res: null, busy: false };
+const HOP_WALK = 1.25;           // m/s, an ordinary walking pace
+const HOP_MAXWALK = 40 * 60;     // do not offer more than 40 minutes on foot
+const HOP_VMAX = 19.5;           // m/s (70 km/h): never drop someone off on a fast road
+
+/* walking over the road graph, in both directions of every street, never on fast roads */
+function hopWalkCost(e) {
+  const w = WAYS[e.w];
+  if (w.zone === 'A' || w.zone === 'G') return Infinity;
+  if (w.speedMs > HOP_VMAX || w.isLink) return Infinity;
+  let c = e.len / HOP_WALK; if (SIG.has(e.b) || SIG.has(e.a)) c += 12; // waiting at a crossing
+  return c;
+}
+function hopWalkField(src, max) {
+  const dist = new Float64Array(NN).fill(Infinity), hn = [], hd = [];
+  const push = (n, d) => { hn.push(n); hd.push(d); let i = hn.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (hd[p] <= hd[i]) break; [hn[p], hn[i]] = [hn[i], hn[p]]; [hd[p], hd[i]] = [hd[i], hd[p]]; i = p; } };
+  const pop = () => { const n = hn[0], d = hd[0], ln = hn.pop(), ld = hd.pop(); if (hn.length) { hn[0] = ln; hd[0] = ld; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < hn.length && hd[l] < hd[m]) m = l; if (r < hn.length && hd[r] < hd[m]) m = r; if (m === i) break; [hn[m], hn[i]] = [hn[i], hn[m]]; [hd[m], hd[i]] = [hd[i], hd[m]]; i = m; } } return [n, d]; };
+  dist[src] = 0; push(src, 0);
+  while (hn.length) {
+    const [u, d] = pop(); if (d > dist[u] + 1e-6) continue; if (d > max) break;
+    for (const list of [OUT[u], IN[u]]) for (const ei of list) {
+      const e = EDGES[ei], v = e.a === u ? e.b : e.a, c = hopWalkCost(e); if (c === Infinity) continue;
+      const nd = d + c; if (v < NN && nd < dist[v]) { dist[v] = nd; push(v, nd); }
+    }
+  }
+  return dist;
+}
+const hopWalkable = n => { if (!DEG[n]) return false; for (const list of [OUT[n], IN[n]]) for (const ei of list) if (hopWalkCost(EDGES[ei]) < Infinity) return true; return false; };
+
+async function hopLoad(a, b) { // make sure the streets between two points, and around the second, are loaded
+  const L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.min(14, Math.ceil(L / 3000));
+  for (let i = 0; i <= n; i++) { const t = n ? i / n : 0; try { await ensureArea(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 1500); } catch (e) { } }
+}
+
+async function hopCompute(drv, me) {
+  await hopLoad({ x: egoX, y: egoY }, drv); await hopLoad(drv, me);
+  const r = planRoute(drv, [], 'fast');
+  if (!r) return { err: 'לא מצאנו מסלול לנהג ליעד הזה' };
+  const meNode = nearestNode(me.x, me.y, hopWalkable, 40);
+  if (meNode < 0) return { err: 'לא מצאנו רחוב להליכה ליד היעד שלך' };
+  const wf = hopWalkField(meNode, HOP_MAXWALK);
+  const j0 = Math.floor(r.sStart || 0), TT0 = r.TT[j0], dark = (h => h >= 20 || h < 6)(new Date().getHours());
+  const nodeWalk = (x, y, n) => wf[n] + Math.hypot(NX[n] - x, NY[n] - y) / HOP_WALK;
+  const cands = [];
+  for (let j = j0 + 40; j < r.M - 80; j += 40) {
+    const e = EDGES[r.edgeSeq[r.SE[j]]], w = WAYS[e.w];
+    if (w.speedMs > HOP_VMAX || w.isLink || w.round) continue; // a place where a car can pull over
+    const x = r.DX[j], y = r.DY[j];
+    let walk = Math.min(nodeWalk(x, y, e.a), nodeWalk(x, y, e.b)); if (!(walk <= HOP_MAXWALK)) continue;
+    const tDrop = TT0 - r.TT[j];
+    let arr = tDrop + walk, hi = tDrop * 1.25 + walk * 1.15, how = 'walk', line = '';
+    if (HOP.transit) { const t = HOP.transit.arrive(e.b, tDrop); if (t && t.arr < arr) { arr = t.arr; hi = t.hi; how = 'transit'; line = t.label || ''; } }
+    cands.push({ j, x, y, street: nameOf(w), tDrop, walk, arr, hi, how, line, score: arr + walk * (dark ? 0.5 : 0.25) });
+  }
+  cands.sort((a, b) => a.score - b.score);
+  const picks = []; for (const c of cands) { if (picks.every(p => Math.abs(p.j - c.j) >= 500)) picks.push(c); if (picks.length === 3) break; }
+  // alternatives to compare against
+  const endN = r.nodeSeq[r.nodeSeq.length - 1], stayArr = TT0 + (wf[endN] < Infinity ? wf[endN] : Infinity);
+  const st = currentStartNode().node, walkNowArr = wf[st] < Infinity ? wf[st] : Infinity;
+  return { r, picks, stayArr, walkNowArr, TT0, transit: !!HOP.transit, dark };
+}
+
+/* ---------- screen ---------- */
+const hopPlace = k => k === 'me' ? (HOP.me || Store.data.home) : HOP.drv;
+const hopClock = sec => fmtClock(sec);
+function hopVerdict(R) {
+  const best = R.picks[0];
+  if (!best) return { kind: 'none', t: 'אין נקודה טובה', s: R.stayArr < Infinity ? 'אפשר להישאר ברכב עד הסוף, ומשם ללכת ברגל.' : 'היעד רחוק מדי מהמסלול כדי להגיע אליו ברגל. כשהתחבורה הציבורית תתחבר, נציע גם נקודות מעבר.' };
+  const bestAll = Math.min(best.arr, R.stayArr, R.walkNowArr);
+  if (R.walkNowArr <= best.arr - 60 && R.walkNowArr <= R.stayArr) return { kind: 'walk', t: 'עדיף ללכת ברגל', s: `אתם מגיעים ב-${hopClock(R.walkNowArr)}, לפני כל נקודת ירידה (${hopClock(best.arr)}).` };
+  if (R.stayArr <= best.arr + 60) return { kind: 'stay', t: 'עדיף להישאר ברכב עד הסוף', s: `ההקפצה לא חוסכת כאן. מההגעה של הנהג ליעד שלו מגיעים ב-${hopClock(R.stayArr)}.` };
+  const base = Math.min(R.stayArr, R.walkNowArr), how = R.stayArr <= R.walkNowArr ? 'לנסוע עד הסוף' : 'ללכת ברגל מהנקודה הנוכחית';
+  return { kind: 'hop', t: 'כדאי לרדת בדרך', s: base < Infinity ? `חוסך ${fmtMin(base - best.arr)} לעומת ${how}.` : 'בלי ההקפצה היעד שלך רחוק מדי להליכה.' };
+}
+function hopCard(c, i, best) {
+  const lbl = ['הכי משתלם', 'חלופה', 'חלופה'][i];
+  return `<button class="hopc press${i === 0 ? ' best' : ''}" data-hp="${i}"><div class="hoptop"><b>${esc(c.street)}</b><span class="hopbadge">${lbl}</span></div>
+    <div class="hopbig">בעוד ${fmtMin(c.tDrop)} · ${c.how === 'transit' ? esc(c.line || 'תחבורה ציבורית') : fmtMin(c.walk) + ' הליכה'}</div>
+    <div class="hopeta">מגיעים ב-<b>${hopClock(c.arr)}</b><span>בדרך כלל עד ${hopClock(c.hi)}</span></div></button>`;
+}
+function hopRender() {
+  const m = $('#modal'); if (!m.querySelector('#hopCard')) return;
+  const d = hopPlace('drv'), me = hopPlace('me'), R = HOP.res, ok = d && me;
+  let out = '';
+  if (HOP.busy) out = '<div class="hopnote">מחשבים נקודות ירידה לאורך המסלול…</div>';
+  else if (R && R.err) out = `<div class="hopnote bad">${esc(R.err)}</div>`;
+  else if (R) { const V = hopVerdict(R);
+    out = `<div class="hopv ${V.kind}"><b>${V.t}</b><span>${V.s}</span></div>${R.picks.map((c, i) => hopCard(c, i)).join('')}
+    ${R.picks.length ? '<button class="mubtn press hopmap" id="hopMap">הצגה על המפה</button>' : ''}
+    <div class="hopnote">${R.transit ? 'כולל תחבורה ציבורית.' : 'כרגע החישוב כולל נסיעה והליכה בלבד. תחבורה ציבורית עוד לא מחוברת, והזמנים הם הערכה.'}${R.dark ? ' בשעות החשכה נותנים משקל גדול יותר להליכה קצרה.' : ''}</div>`; }
+  $('#hopOut').innerHTML = out;
+  $('#hopDrv').querySelector('span').textContent = d ? d.label : 'בחירת יעד';
+  $('#hopMe').querySelector('span').textContent = me ? me.label : 'בחירת יעד';
+  $('#hopGo').disabled = !ok || HOP.busy; $('#hopGo').textContent = HOP.busy ? 'מחשבים…' : 'איפה לרדת?';
+  const mp = $('#hopMap'); if (mp) mp.onclick = hopShowMap;
+  $$('#hopOut [data-hp]').forEach(b => b.onclick = () => hopShowMap(+b.dataset.hp));
+}
+function hopOpen() {
+  const m = $('#modal');
+  m.innerHTML = `<div class="mcard glass strong" id="hopCard" role="dialog" aria-modal="true" aria-labelledby="hopT"><div class="row"><div class="grow"><div class="ptitle" id="hopT">מקפיצים אותי</div><div class="psub">מישהו נוסע, ואתם צריכים להגיע למקום אחר. איפה הכי כדאי לרדת?</div></div><button class="circ press" id="hopX" style="background:var(--fill)" aria-label="סגירה">${ICON.x}</button></div>
+    <button class="hopfield press" id="hopDrv"><small>לאן הנהג נוסע</small><span></span></button>
+    <button class="hopfield press" id="hopMe"><small>לאן אתם צריכים להגיע</small><span></span></button>
+    <button class="mubtn press" id="hopGo" style="background:var(--accent);color:#fff">איפה לרדת?</button><div id="hopOut"></div></div>`;
+  m.hidden = false; $('#hopX').onclick = () => m.hidden = true; m.onclick = e => { if (e.target === m) m.hidden = true; };
+  const pick = k => () => { m.hidden = true; S.pickFor = 'hop' + k; openSearch(); toast(k === 'drv' ? 'חפשו את היעד של הנהג' : 'חפשו לאן אתם צריכים להגיע', 2600); };
+  $('#hopDrv').onclick = pick('drv'); $('#hopMe').onclick = pick('me');
+  $('#hopGo').onclick = async () => {
+    const d = hopPlace('drv'), me = hopPlace('me'); if (!d || !me || HOP.busy) return;
+    HOP.busy = true; HOP.res = null; hopRender();
+    try { HOP.res = await hopCompute(d, me); } catch (e) { console.error(e); HOP.res = { err: 'משהו השתבש בחישוב. נסו שוב' }; }
+    HOP.busy = false; hopRender();
+  };
+  hopRender();
+}
+function hopShowMap(i) {
+  const R = HOP.res; if (!R || !R.picks.length) return;
+  $('#modal').hidden = true; enterHome();
+  const r = R.r; S.previewRoute = r; routeMat.uniforms.uNav.value = 0; routeRibbon(r, Math.max(4, Math.min(14, r.total / 220))); routeMat.uniforms.uS.value = r.sStart || 0; routeMat.uniforms.uRev.value = r.sStart || 0; S.revSpeed = Math.max(400, r.M / 1.4);
+  clearMarkers(m => m.userData.temp);
+  R.picks.forEach((c, k) => addMarker(k === 0 ? 'parking' : 'dest', c.x, c.y, { temp: true }, k === (typeof i === 'number' ? i : 0)));
+  const me = hopPlace('me'); if (me) addMarker('home', me.x, me.y, { temp: true }, true);
+  setTimeout(() => fitRoute(r), 150); toast('נקודות הירידה על המפה. לחזרה לתוצאות: מקפיצים אותי', 3600);
+}
+{ // a place picked for the engine comes back here, not to the normal place sheet
+  const _pick = pickResult;
+  pickResult = function (p) {
+    if (p && S.pickFor && String(S.pickFor).startsWith('hop') && p.kind !== 'cat' && p.x != null) {
+      const k = S.pickFor.slice(3); S.pickFor = null; HOP[k] = { label: p.label, x: p.x, y: p.y }; HOP.res = null; enterHome(); hopOpen(); return;
+    }
+    return _pick.apply(this, arguments);
+  };
+  const _home = renderHome;
+  renderHome = function () {
+    _home.apply(this, arguments);
+    const q = $('#quick'); if (!q || q.querySelector('[data-hop]')) return;
+    const b = document.createElement('button'); b.className = 'qp glass press'; b.dataset.hop = '1';
+    b.innerHTML = `<i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h2a3 3 0 003-3V8a3 3 0 013-3h8M17 2l3 3-3 3"/><circle cx="6" cy="20" r="1.4"/></svg></i>מקפיצים אותי`;
+    b.onclick = hopOpen; q.insertBefore(b, q.children[2] || null);
   };
 }
 
