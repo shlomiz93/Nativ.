@@ -4560,7 +4560,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793534789';
+const APP_VERSION = '1793550323';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5230,9 +5230,40 @@ function shareRide() {
   const _rs = renderRouteSheet;
   renderRouteSheet = function () {
     _rs.apply(this, arguments);
-    const body = $('#routeBody'); if (!body || body.querySelector('#rRide')) return;
-    const b = document.createElement('button'); b.id = 'rRide'; b.className = 'mubtn press'; b.style.cssText = 'background:var(--fill);color:var(--ink);margin:10px 0 2px';
-    b.textContent = 'שיתוף הנסיעה: מישהו יכול להצטרף?'; b.onclick = shareRide; body.appendChild(b);
+    const body = $('#routeBody'); if (!body || body.querySelector('#rShareRow')) return;
+    const row = document.createElement('div'); row.id = 'rShareRow'; row.style.cssText = 'display:flex;gap:8px;margin:10px 0 2px';
+    row.innerHTML = '<button id="rTrack" class="mubtn press" style="flex:1;background:var(--fill);color:var(--ink)">שיתוף נסיעה למעקב</button><button id="rRide" class="mubtn press" style="flex:1;background:var(--fill);color:var(--ink)">הצעה להצטרף לנסיעה</button>';
+    body.appendChild(row); $('#rTrack').onclick = shareLocation; $('#rRide').onclick = shareRide;
+  };
+}
+/* ---------- a mode just for joining a ride (works for people who are not driving) ---------- */
+function rideSaveReceived(P) {
+  const L = (Store.data.rides || []).filter(r => !(r.P.n === P.n && r.P.dl === P.dl && r.P.o[0] === P.o[0]));
+  Store.data.rides = [{ P, t: Date.now() }].concat(L).slice(0, 8); Store.save();
+}
+function rideParseLink(txt) {
+  const m = String(txt || '').match(/[?&]ride=([A-Za-z0-9_\-]+)/) || String(txt || '').trim().match(/^([A-Za-z0-9_\-]{20,})$/);
+  if (!m) return null; try { const P = b64d(m[1]); return P && P.o && P.d ? P : null; } catch (e) { return null; }
+}
+function rideJoinOpen() {
+  const m = $('#modal'), L = Store.data.rides || [];
+  m.innerHTML = `<div class="mcard glass strong" id="joinCard" role="dialog" aria-modal="true" aria-labelledby="joinT"><div class="row"><div class="grow"><div class="ptitle" id="joinT">הצטרפות לנסיעה</div><div class="psub">מישהו נוסע ולא מחכה לכם? בדקו איפה כדאי לעלות או לרדת כדי להגיע מהר יותר</div></div><button class="ibtn press" id="joinX" aria-label="סגירה">✕</button></div>
+    <label class="hopfield" style="cursor:text"><small>הדביקו את הקישור ששלח הנהג</small><input id="joinLink" class="ridein" type="text" dir="ltr" placeholder="https://…?ride=" autocomplete="off"></label>
+    <button class="mubtn press" id="joinGo" style="background:var(--accent);color:#fff">פתיחת הנסיעה</button><div id="joinMsg" class="hopnote"></div>
+    ${L.length ? '<div class="psub" style="margin:10px 2px 4px">נסיעות שקיבלתם</div>' + L.map((r, i) => `<button class="hopc press" data-jr="${i}"><div class="hoptop"><b>${esc(r.P.n)} נוסע/ת ל${esc(r.P.dl)}</b></div></button>`).join('') : '<div class="hopnote">הנהג משתף את הנסיעה מהמסך של המסלול, ואתם פותחים את הקישור שקיבלתם או מדביקים אותו כאן.</div>'}</div>`;
+  m.hidden = false; $('#joinX').onclick = () => m.hidden = true; m.onclick = e => { if (e.target === m) m.hidden = true; };
+  const open = P => { RIDE.P = P; RIDE.me = null; RIDE.res = null; rideSaveReceived(P); ridePaxOpen(); };
+  $('#joinGo').onclick = () => { const P = rideParseLink($('#joinLink').value); if (P) open(P); else $('#joinMsg').textContent = 'לא זיהינו קישור נסיעה. ודאו שהעתקתם את כל הקישור.'; };
+  $$('#joinCard [data-jr]').forEach(b => b.onclick = () => open(L[+b.dataset.jr].P));
+}
+{
+  const _home = renderHome;
+  renderHome = function () {
+    _home.apply(this, arguments);
+    const q = $('#quick'); if (!q || q.querySelector('[data-join]')) return;
+    const b = document.createElement('button'); b.className = 'qp glass press'; b.dataset.join = '1';
+    b.innerHTML = '<i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 8h4M19 6v4"/></svg></i>מצטרפים לנסיעה';
+    b.onclick = rideJoinOpen; q.insertBefore(b, q.children[3] || null);
   };
 }
 
@@ -5327,7 +5358,7 @@ async function rideDriverOpen(Q) {
   let data; try { data = b64d(ride || req); } catch (e) { setTimeout(() => toast('הקישור לא תקין', 3000), 2500); return; }
   try { history.replaceState(null, '', location.pathname); } catch (e) { }
   let tries = 0;
-  const go = () => { if (S.mode === 'home') { if (ride) { RIDE.P = data; RIDE.me = null; RIDE.res = null; ridePaxOpen(); } else rideDriverOpen(data); } else if (tries++ < 40) setTimeout(go, 500); };
+  const go = () => { if (S.mode === 'home') { if (ride) { rideSaveReceived(data); RIDE.P = data; RIDE.me = null; RIDE.res = null; ridePaxOpen(); } else rideDriverOpen(data); } else if (tries++ < 40) setTimeout(go, 500); };
   setTimeout(go, 1800);
 })();
 
