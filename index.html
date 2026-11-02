@@ -2192,7 +2192,12 @@ function parseQuery(raw) {
   let q = norm(raw), city = null, best = null;
   for (const [cn, c] of CITY_N) { if (cn.length < 2 || q === cn) continue; const re = new RegExp('(^|\\s)' + cn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\s|$)'); const m = re.exec(q); if (!m) continue; const end = m.index + m[0].length; if (!best || end > best.end || (end === best.end && cn.length > best.cn.length)) best = { c, re, end, cn }; }
   // the city is the one written last ("ירושלים 42 בני ברק": a street named like a city); never strip the whole query down to nothing
-  if (best) { const rest = q.replace(best.re, ' ').replace(/\s+/g, ' ').trim(); if (rest && !/^\d+[א-ת]?$/.test(rest)) { city = best.c; q = rest; } }
+  if (best) { const rest = q.replace(best.re, ' ').replace(/\s+/g, ' ').trim(); if (rest && (!/^\d+[א-ת]?$/.test(rest) || [...rest.split(' ')].length <= 2 && (SIDX.has(rest.split(' ')[0] + '|' + best.c) || STREETS.has(rest.split(' ')[0] + '|' + best.c)))) { city = best.c; q = rest; } }
+  q = q.replace(/(^|\s)(בניין|בנין|מספר|מס)(\s|$)/g, ' ').replace(/\s+/g, ' ').trim(); // "רחוב 601, בניין 22"
+  const toks = q.split(' ').filter(Boolean);
+  if (toks.length && toks.every(t => /^\d+$/.test(t)) && toks.length <= 2) { // streets that are numbers ("601"): first number is the street, second the building
+    return { q: toks[0], city, num: toks[1] || null };
+  }
   const m = q.match(/(^|\s)(\d+[א-ת]?)(\s|$)/);
   let num = null; if (m) { num = m[2]; q = (q.slice(0, m.index) + ' ' + q.slice(m.index + m[0].length)).replace(/\s+/g, ' ').trim(); }
   return { q, city, num };
@@ -2210,7 +2215,7 @@ function searchAll(raw) {
   // streets and addresses
   if (q) {
     for (const k of streetKeys()) {
-      const [name, c] = k.split('|'); const ns = norm(name);
+      const [name0, c] = k.split('|'); const ns = norm(name0); const name = /^\d+$/.test(name0) ? 'רחוב ' + name0 : name0; // numbered streets (new neighbourhoods)
       if (city && c !== city) continue;
       let sc = 0; if (ns === q) sc = 900; else if (ns.startsWith(q)) sc = 800 - (ns.length - q.length); else if (ns.split(' ').some(wd => wd.startsWith(q))) sc = 650; else if (q.length > 2 && ns.includes(q)) sc = 450;
       if (!sc) continue;
@@ -4571,7 +4576,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793619562';
+const APP_VERSION = '1793620596';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
