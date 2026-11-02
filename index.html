@@ -3034,7 +3034,7 @@ const LEGAL = {
 
   safety: { t: 'בטיחות בנהיגה', b: `
 <p class="lead">נתיב בנויה כך שתסתכלו על הכביש, לא על הטלפון.</p>
-<ul><li>הגדירו יעד ועצירות <b>לפני</b> שיוצאים לדרך.</li><li>הניחו את הטלפון במתקן יציב. תקנות התעבורה אוסרות להחזיק טלפון או להקליד בזמן נהיגה.</li><li>הפעילו הנחיות קוליות, ואז אין צורך להביט במסך.</li><li>הספירה לאחור ברמזור היא עזר בלבד. נוסעים לפי צבע הרמזור בפועל.</li><li>תמרורים, סימוני כביש והוראות שוטר גוברים תמיד על האפליקציה.</li></ul>` },
+<ul><li>הגדירו יעד ועצירות <b>לפני</b> שיוצאים לדרך.</li><li>הניחו את הטלפון במתקן יציב. תקנות התעבורה אוסרות להחזיק טלפון או להקליד בזמן נהיגה.</li><li>הפעילו הנחיות קוליות, ואז אין צורך להביט במסך.</li><li>אין לנו עדיין נתוני אמת על תזמון הרמזורים, ולכן האפליקציה לא מציגה ספירה לאחור. נוסעים לפי צבע הרמזור בפועל.</li><li>תמרורים, סימוני כביש והוראות שוטר גוברים תמיד על האפליקציה.</li></ul>` },
 
   licenses: { t: 'מקורות ורישיונות', b: `
 <h3>נתוני המפה</h3><p>כבישים, נתיבים, רמזורים, תמרורים, מבנים, כתובות ועסקים: © תורמי <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>, ברישיון <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">Open Database License (ODbL)</a>. אם תמצאו טעות במפה, אפשר לתקן אותה ישירות ב־OpenStreetMap.</p>
@@ -3056,7 +3056,7 @@ function ensureSafety(then) {
   if (Store.data.prefs.safetyOk) { then(); return; }
   const m = $('#modal');
   m.innerHTML = `<div class="mcard glass strong" role="dialog" aria-modal="true" aria-labelledby="mT"><div id="mT" class="ptitle">לפני שיוצאים</div>
-    <ul class="safe"><li>הניחו את הטלפון במתקן יציב. אסור להחזיק אותו או להקליד בזמן נהיגה.</li><li>הנחיות קוליות יאפשרו לכם לא להסתכל על המסך.</li><li>הספירה לאחור ברמזור היא עזר בלבד ונמצאת בהדמיה. נוסעים לפי הרמזור בפועל.</li><li>תמרורים והוראות שוטר גוברים תמיד על האפליקציה.</li></ul>
+    <ul class="safe"><li>הניחו את הטלפון במתקן יציב. אסור להחזיק אותו או להקליד בזמן נהיגה.</li><li>הנחיות קוליות יאפשרו לכם לא להסתכל על המסך.</li><li>אין לנו עדיין נתוני אמת על תזמון הרמזורים, ולכן האפליקציה לא מציגה ספירה לאחור. נוסעים לפי הרמזור בפועל.</li><li>תמרורים והוראות שוטר גוברים תמיד על האפליקציה.</li></ul>
     <button class="cta press" id="mOk">הבנתי, יוצאים</button><button class="link" id="mMore" style="align-self:center">תנאי השימוש המלאים</button></div>`;
   m.hidden = false;
   $('#mOk').onclick = () => { Store.data.prefs.safetyOk = Date.now(); Store.save(); m.hidden = true; then(); };
@@ -3577,7 +3577,7 @@ function laneDataR(r, m) {
   const tag = e.dir > 0 ? w.turnF : w.turnB;
   let lanes;
   if (tag && tag.split('|').length === my) lanes = tag.split('|').map(x => x.split(';').map(a => a.trim() || 'none'));
-  else { lanes = []; for (let i = 0; i < my; i++) { const a = ['through']; if (i === 0) a.unshift('left'); if (i === my - 1) a.push('right'); lanes.push(a); } }
+  else return null; // no real lane data in the map: we do not guess lanes
   let on = lanes.map(a => a.some(k => want.includes(k)));
   if (!on.some(Boolean)) on = lanes.map((_, i) => m.dir > 0 ? i === 0 : i === lanes.length - 1);
   return { on, known: !!tag };
@@ -4576,7 +4576,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793620596';
+const APP_VERSION = '1793622706';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
