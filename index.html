@@ -1326,8 +1326,9 @@ function buildSignals(key, group) {
 }
 let simT = 0;
 function updateLamps() {
+  const real = Store.data.prefs.sim;
   for (const { list, lamps } of SIG_SETS.values()) {
-    list.forEach((n, i) => { const st = sigState(n, 0, simT)[0], k = st === 'r' ? 0 : st === 'y' ? 1 : 2; for (let j = 0; j < 3; j++) lamps[j].setColorAt(i, j === k ? LAMPON[j] : LAMPOFF); });
+    list.forEach((n, i) => { const st = real ? sigState(n, 0, simT)[0] : 'x', k = st === 'r' ? 0 : st === 'y' ? 1 : st === 'g' ? 2 : -1; for (let j = 0; j < 3; j++) lamps[j].setColorAt(i, j === k ? LAMPON[j] : LAMPOFF); });
     lamps.forEach(l => l.instanceColor.needsUpdate = true);
   }
 }
@@ -1540,7 +1541,9 @@ function aheadGap(x, y, h, others, self) {
   return gap;
 }
 let focusX = 0, focusY = 0; // traffic gathers around what the camera looks at
+function applySim() { const on = !!Store.data.prefs.sim; for (const f of Object.values(fleet)) for (const m of [f.body, f.glass, f.wheels, f.tail]) m.visible = on; if (!on) for (const c of ai) c.e = -1; }
 function updateAI(dt) {
+  if (!Store.data.prefs.sim) return;
   const egoObj = { x: egoX, y: egoY, h: egoH, e: 0, type: 'sedan' };
   for (const c of ai) {
     if (c.e < 0 || Math.hypot(c.x - focusX, c.y - focusY) > 540) { spawn(c, 150, focusX, focusY); continue; }
@@ -2695,7 +2698,7 @@ function openProfile(sec) {
   if (sec === 'look') { const cur = P.tone || 'auto', T = [['auto', 'linear-gradient(135deg,#3d8cff,#ffc58e 45%,#ff5d8f 70%,#141a3c)'], ['morning', 'linear-gradient(160deg,#5aa2ff,#dcefff)'], ['noon', 'linear-gradient(160deg,#3d8cff,#cfe4ff)'], ['golden', 'linear-gradient(160deg,#6f93d8,#ffc58e)'], ['dusk', 'linear-gradient(160deg,#23285e,#ff7a7a)'], ['night', 'linear-gradient(160deg,#050816,#1a2250)']];
     body = `<div class="group glass strong" style="padding:12px"><div class="tonepick">${T.map(([k, g]) => `<button data-tone="${k}" style="background:${g}" aria-pressed="${cur === k}">${TONE_NAMES[k]}</button>`).join('')}</div></div><div class="prnote">באוטומטי, הצבעים, האור והשמיים עוקבים אחרי השמש האמיתית: בוקר, צהריים, שקיעה ולילה.</div>`; }
   if (sec === 'music') body = musicSettingsHTML();
-  if (sec === 'drive') body = `<div class="group glass strong"><div class="list">${swRow('pVoice', 'הנחיות קוליות', 'הכרזה לפני כל פנייה', S.voice)}${swRow('pPark', 'הצעת חניה לפני היעד', 'חניונים קרובים כשנשארו 600 מטר', P.park !== false)}${swRow('pWake', 'דיווח בקול: "נתיב…"', 'בנסיעה אומרים "נתיב" ואז מה ראיתם', P.wake)}${swRow('pGlosa', 'המלצת מהירות לגל ירוק', 'ניסיוני · לעולם לא מעל המהירות המותרת', P.glosa)}</div></div>`;
+  if (sec === 'drive') body = `<div class="group glass strong"><div class="list">${swRow('pVoice', 'הנחיות קוליות', 'הכרזה לפני כל פנייה', S.voice)}${swRow('pPark', 'הצעת חניה לפני היעד', 'חניונים קרובים כשנשארו 600 מטר', P.park !== false)}${swRow('pWake', 'דיווח בקול: "נתיב…"', 'בנסיעה אומרים "נתיב" ואז מה ראיתם', P.wake)}${swRow('pGlosa', 'המלצת מהירות לגל ירוק', 'ניסיוני · לעולם לא מעל המהירות המותרת', P.glosa)}${swRow('pSim', 'הדמיית רמזורים ותנועה', 'ניסיוני · ספירה וצבעים מומצאים, בלי נתוני אמת. כבוי כברירת מחדל', P.sim)}</div></div>`;
   if (sec === 'map') body = `<div class="group glass strong"><div class="list">${swRow('pLabels', 'שמות על מבנים', 'שם המקום והחנויות שבתוכו', P.labels !== false)}${swRow('pSide', 'מה יש בצדי הדרך', 'שם קצר של מקום מימין ומשמאל בנסיעה', P.side !== false)}${swRow('pRain', 'תצוגה מקדימה: גשם', 'איך המפה וההתראות נראים בגשם', WX.preview)}</div></div>`;
   if (sec === 'traffic') body = `<div class="group glass strong" style="padding:14px 16px"><div class="ttrow"><input id="pTT" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" aria-label="מפתח TomTom API" placeholder="TomTom API key" value="${esc(P.ttKey || '')}" style="padding:12px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--fill2, rgba(127,127,127,.1));color:var(--ink);font:500 15px var(--f, inherit)"><button class="press" id="pTTgo">בדיקה</button></div><div class="ttstat" id="pTTst">${P.ttKey ? (P.ttOk ? '✓ המפתח נבדק ועובד' : 'שמור. הקישו "בדיקה" כדי לוודא שהוא עובד') : 'אין מפתח, התנועה בזמן אמת כבויה'}</div></div><div class="prnote">עם מפתח חינמי של TomTom (עד 2,500 בדיקות ביום) המסלול והזמן מתחשבים בעומסים עכשיו. המפתח נשמר בטלפון בלבד.</div>`;
   if (sec === 'privacy') body = `<div class="group glass strong"><div class="list">${swRow('pHist', 'שמירת היסטוריית חיפושים', 'להשלמה אוטומטית בזמן הקלדה', P.history !== false)}${swRow('pJourney', 'שמירת נסיעות ב"המסע שלי"', 'אוטומטית בסוף נסיעה. כבוי: שואלים כל פעם', P.journey)}</div></div>
@@ -2715,6 +2718,7 @@ function openProfile(sec) {
   if (sec === 'music') bindMusicSettings();
   on('pWake', e => { P.wake = e.target.checked; Store.save(); if (e.target.checked && !(window.SpeechRecognition || window.webkitSpeechRecognition)) toast('הדפדפן הזה לא תומך בזיהוי דיבור', 3600); });
   on('pGlosa', e => { P.glosa = e.target.checked; Store.save(); });
+  on('pSim', e => { P.sim = e.target.checked; Store.save(); if (typeof applySim === 'function') applySim(); });
   on('pJourney', e => { P.journey = e.target.checked; Store.save(); });
   on('pLabels', e => { P.labels = e.target.checked; Store.save(); });
   on('pSide', e => { P.side = e.target.checked; Store.save(); });
@@ -2824,6 +2828,11 @@ function updateHUD() {
   const lt = $('#light');
   if (nextSig && nextSig.d < 260 && !S.arrived) {
     lt.hidden = false; lt.style.top = manB + 'px';
+    const cf0 = sigConf(nextSig.n);
+    if (cf0.k === 'sim' && !Store.data.prefs.sim) { // no real data: say only what we know
+      const dd0 = Math.max(0, nextSig.d); $('#ringArc').style.stroke = 'var(--mute)'; $('#ringArc').style.strokeDashoffset = '132'; $('#lightT').textContent = '●'; $('#lightT').style.color = 'var(--mute)';
+      setH($('#lightS'), `<strong>רמזור</strong>בעוד ${fmtD(dd0).v} ${fmtD(dd0).u}`);
+    } else {
     const [c, rem] = nextSig.st, col = c === 'g' ? 'var(--ok)' : c === 'y' ? 'var(--warn)' : 'var(--bad)';
     const tot = PHASE_LEN[c][nextSig.g] || 30, arc = $('#ringArc');
     arc.style.stroke = col; arc.style.strokeDashoffset = String(132 * (1 - Math.max(0, Math.min(1, rem / tot))));
@@ -2836,6 +2845,7 @@ function updateHUD() {
     } else adv = c === 'g' ? 'ירוק עכשיו' : c === 'y' ? 'צהוב עכשיו' : 'אדום עכשיו';
     const cf = sigConf(nextSig.n);
     setH($('#lightS'), `<strong>${adv}</strong>${c === 'g' ? 'לאדום' : 'לירוק'} · בעוד ${fmtD(dd).v} ${fmtD(dd).u} <span class="conf c-${cf.k}">${cf.he}</span>`);
+    }
   } else lt.hidden = true;
   const al = $('#alert'); let best = null;
   for (const a of r.alerts) { if (!ALERT_PRI[a.kind]) continue; const ad = a.s - s; if (ad < -5) continue; if (ad > 320) break; if (a.kind === 'c' && ad > 120) continue; if (!best || ALERT_PRI[a.kind] > ALERT_PRI[best.kind]) best = Object.assign({ d: ad }, a); }
@@ -3688,6 +3698,7 @@ function bindVehicleGroup(root) {
   $$(root + ' [data-vt]').forEach(b => b.onclick = () => { Store.data.prefs.carType = b.dataset.vt; Store.save(); setEgoVehicle(b.dataset.vt); $$(root + ' [data-vt]').forEach(x => x.setAttribute('aria-checked', String(x === b))); toast('הרכב עודכן', 1200); });
   $$(root + ' [data-vc]').forEach(b => b.onclick = () => { Store.data.prefs.carColor = +b.dataset.vc; Store.save(); ego.body.material.color.set(+b.dataset.vc); $$(root + ' [data-vc]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
 }
+applySim();
 
 /* ================= MY CAR, DRAWN PROPERLY =================
    A smooth, modern car instead of a box: a rounded lower body, a narrower glass cabin with a body-colour roof,
@@ -4560,7 +4571,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793550323';
+const APP_VERSION = '1793619562';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
