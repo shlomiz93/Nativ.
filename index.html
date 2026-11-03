@@ -545,13 +545,14 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
 .hopfield small{font-size:12px;color:var(--mute,var(--ink2));font-weight:600}.hopfield span{font-size:17px;font-weight:700}
 #hopOut{display:flex;flex-direction:column;gap:10px;margin-top:2px}
 .hopv{border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;background:linear-gradient(135deg,color-mix(in srgb,var(--ok) 22%,transparent),color-mix(in srgb,var(--accent) 14%,transparent));border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}
-.hopv b{font-size:19px}.hopv span{font-size:14px;color:var(--ink2)}
+.hopv b{font-size:24px;letter-spacing:-.015em}.hopv span{font-size:14px;color:var(--ink2)}
 .hopv.stay,.hopv.walk,.hopv.none{background:linear-gradient(135deg,color-mix(in srgb,var(--warn) 22%,transparent),color-mix(in srgb,var(--accent) 10%,transparent));border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
 .hopc{display:flex;flex-direction:column;gap:6px;text-align:right;padding:14px 16px;border-radius:20px;background:var(--fill);border:1px solid var(--hair);color:var(--ink)}
 .hopc.best{background:linear-gradient(135deg,var(--fill2),color-mix(in srgb,var(--accent) 12%,transparent));border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
 .hoptop{display:flex;justify-content:space-between;align-items:center;gap:8px}.hoptop b{font-size:17px}
 .hopbadge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--fill2)}
-.hopbig{font-size:14px;color:var(--ink2)}.hopeta{display:flex;flex-direction:column}.hopeta b{font-size:26px;letter-spacing:-.01em}.hopeta span{font-size:13px;color:var(--ink2)}
+:where(button,[role=button],input,a):focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 70%,#fff);outline-offset:2px}
+.hopbig{font-size:14px;color:var(--ink2)}.hopm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px}.hopm>div{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:14px;background:var(--fill)}.hopm small{font-size:12px;color:var(--mute,var(--ink2));font-weight:600}.hopm b{font-size:17px;letter-spacing:-.01em;white-space:nowrap}.hopc.best .hopm>div:last-child b{font-size:20px;color:var(--accent)}.hopeta{display:flex;flex-direction:column}.hopeta b{font-size:26px;letter-spacing:-.01em}.hopeta span{font-size:13px;color:var(--ink2)}
 .hopnote{font-size:13px;color:var(--ink2);padding:2px 4px;line-height:1.5}.hopnote.bad{color:var(--bad)}
 .hopmap{background:var(--fill)!important;color:var(--ink)!important}
 
@@ -4576,7 +4577,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793622706';
+const APP_VERSION = '1793707068';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5125,10 +5126,10 @@ function hopVerdict(R) {
   return { kind: 'hop', t: 'כדאי לרדת בדרך', s: base < Infinity ? `חוסך ${fmtMin(base - best.arr)} לעומת ${how}.` : 'בלי ההקפצה היעד שלך רחוק מדי להליכה.' };
 }
 function hopCard(c, i, best) {
-  const lbl = ['הכי משתלם', 'חלופה', 'חלופה'][i];
-  return `<button class="hopc press${i === 0 ? ' best' : ''}" data-hp="${i}"><div class="hoptop"><b>${esc(c.street)}</b><span class="hopbadge">${lbl}</span></div>
-    <div class="hopbig">בעוד ${fmtMin(c.tDrop)} · ${c.how === 'transit' ? esc(c.line || 'תחבורה ציבורית') : fmtMin(c.walk) + ' הליכה'}</div>
-    <div class="hopeta">מגיעים ב-<b>${hopClock(c.arr)}</b><span>בדרך כלל עד ${hopClock(c.hi)}</span></div></button>`;
+  const lbl = ['הכי משתלם', 'חלופה', 'חלופה'][i], how = c.how === 'transit' ? esc(c.line || 'תחבורה ציבורית') : fmtMin(c.walk) + ' הליכה';
+  return `<button class="hopc press${i === 0 ? ' best' : ''}" data-hp="${i}"><div class="hoptop"><b>רדו ב${esc(c.street)}</b><span class="hopbadge">${lbl}</span></div>
+    <div class="hopm"><div><small>יורדים בעוד</small><b>${fmtMin(c.tDrop)}</b></div><div><small>${c.how === 'transit' ? 'תחבורה' : 'הליכה'}</small><b>${c.how === 'transit' ? esc(c.line || 'ציבורית') : fmtMin(c.walk)}</b></div><div><small>מגיעים</small><b>${hopClock(c.arr)}</b></div></div>
+    <div class="hopeta"><span>בדרך כלל עד ${hopClock(c.hi)}</span></div></button>`;
 }
 function hopRender() {
   const m = $('#modal'); if (!m.querySelector('#hopCard')) return;
@@ -5272,14 +5273,22 @@ function rideJoinOpen() {
   $('#joinGo').onclick = () => { const P = rideParseLink($('#joinLink').value); if (P) open(P); else $('#joinMsg').textContent = 'לא זיהינו קישור נסיעה. ודאו שהעתקתם את כל הקישור.'; };
   $$('#joinCard [data-jr]').forEach(b => b.onclick = () => open(L[+b.dataset.jr].P));
 }
+function rideChooser() {
+  const m = $('#modal');
+  m.innerHTML = `<div class="mcard glass strong" id="chCard" role="dialog" aria-modal="true" aria-labelledby="chT"><div class="row"><div class="grow"><div class="ptitle" id="chT">נסיעה משותפת</div><div class="psub">מישהו נוסע ואתם צריכים להגיע לאותו כיוון? בדקו איפה כדאי לרדת כדי להגיע מהר יותר</div></div><button class="ibtn press" id="chX" aria-label="סגירה">✕</button></div>
+    <button class="hopc press" id="chJoin"><div class="hoptop"><b>קיבלתי קישור מנהג</b></div><div class="hopbig">מדביקים את הקישור ורואים איפה לרדת</div></button>
+    <button class="hopc press" id="chHop"><div class="hoptop"><b>אני יודע/ת לאן הנהג נוסע</b></div><div class="hopbig">מזינים את היעד שלו ושלכם, בלי קישור</div></button></div>`;
+  m.hidden = false; $('#chX').onclick = () => m.hidden = true; m.onclick = e => { if (e.target === m) m.hidden = true; };
+  $('#chJoin').onclick = rideJoinOpen; $('#chHop').onclick = hopOpen;
+}
 {
   const _home = renderHome;
   renderHome = function () {
     _home.apply(this, arguments);
-    const q = $('#quick'); if (!q || q.querySelector('[data-join]')) return;
+    const q = $('#quick'); if (!q) return; const old = q.querySelector('[data-hop]'); if (old) old.remove(); if (q.querySelector('[data-join]')) return;
     const b = document.createElement('button'); b.className = 'qp glass press'; b.dataset.join = '1';
-    b.innerHTML = '<i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 8h4M19 6v4"/></svg></i>מצטרפים לנסיעה';
-    b.onclick = rideJoinOpen; q.insertBefore(b, q.children[3] || null);
+    b.innerHTML = '<i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 8h4M19 6v4"/></svg></i>נסיעה משותפת';
+    b.onclick = rideChooser; q.insertBefore(b, q.children[2] || null);
   };
 }
 
@@ -5299,7 +5308,7 @@ function ridePaxRender() {
   else if (R) {
     const V = rideVerdict(R, +RIDE.alt), c = R.picks[RIDE.pick] || R.picks[0];
     out = `<div class="hopv ${V.kind}"><b>${V.t}</b><span>${V.s}</span></div>`;
-    if (c) out += `${R.picks.map((p, i) => `<button class="hopc press${i === RIDE.pick ? ' best' : ''}" data-rp="${i}"><div class="hoptop"><b>${esc(p.street)}</b><span class="hopbadge">${i === 0 ? 'הכי משתלם' : 'חלופה'}</span></div><div class="hopbig">בעוד ${fmtMin(p.tDrop)} מהיציאה · ${fmtMin(p.walk)} הליכה</div></button>`).join('')}
+    if (c) out += `${R.picks.map((p, i) => `<button class="hopc press${i === RIDE.pick ? ' best' : ''}" data-rp="${i}"><div class="hoptop"><b>רדו ב${esc(p.street)}</b><span class="hopbadge">${i === 0 ? 'הכי משתלם' : 'חלופה'}</span></div><div class="hopm"><div><small>יורדים בעוד</small><b>${fmtMin(p.tDrop)}</b></div><div><small>הליכה</small><b>${fmtMin(p.walk)}</b></div><div><small>מגיעים</small><b>${hopClock(p.arr)}</b></div></div></button>`).join('')}
       <button class="mubtn press" id="rideAsk" style="background:var(--accent);color:#fff">בקשה מ${esc(P.n)} לעצור ב${esc(c.street)}</button>`;
     out += '<div class="hopnote">הזמנים הם הערכה לפי המפה, בלי עומסי תנועה. ההליכה מחושבת לפי הרחובות.</div>';
   }
