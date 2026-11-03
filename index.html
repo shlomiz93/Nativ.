@@ -276,6 +276,7 @@ input{font:inherit;color:inherit}
 #dock button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600;color:var(--ink2);width:76px;height:50px;border-radius:999px}
 #dock button svg{width:22px;height:22px}
 #dock button[aria-current="true"]{background:var(--fill2);color:var(--accent)}
+#device[data-ui="light"] #dock button[aria-current="true"]{color:color-mix(in srgb,var(--accent) 55%,#06231b)}
 #homeSheet{bottom:calc(var(--bot) + 68px)}
 
 /* ---------- search ---------- */
@@ -552,6 +553,7 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
 .hoptop{display:flex;justify-content:space-between;align-items:center;gap:8px}.hoptop b{font-size:17px}
 .hopbadge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--fill2)}
 :where(button,[role=button],input,a):focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 70%,#fff);outline-offset:2px}
+.rcard{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;text-align:right;margin-bottom:10px;padding:16px 18px}.rcard b{font-size:19px}.rcard span{font-size:14px;color:var(--ink2);line-height:1.45}
 .hopbig{font-size:14px;color:var(--ink2)}.hopm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px}.hopm>div{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:14px;background:var(--fill)}.hopm small{font-size:12px;color:var(--mute,var(--ink2));font-weight:600}.hopm b{font-size:17px;letter-spacing:-.01em;white-space:nowrap}.hopc.best .hopm>div:last-child b{font-size:20px;color:var(--accent)}.hopeta{display:flex;flex-direction:column}.hopeta b{font-size:26px;letter-spacing:-.01em}.hopeta span{font-size:13px;color:var(--ink2)}
 .hopnote{font-size:13px;color:var(--ink2);padding:2px 4px;line-height:1.5}.hopnote.bad{color:var(--bad)}
 .hopmap{background:var(--fill)!important;color:var(--ink)!important}
@@ -590,6 +592,7 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
       <button data-tab="map" aria-current="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>מפה</button>
       <button data-tab="places"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>שמורים</button>
       <button data-tab="journey"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 000-6H9a3 3 0 010-6h6.5"/></svg>המסע שלי</button>
+      <button data-tab="rides"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 8h4M19 6v4"/></svg>משותפת</button>
       <button data-tab="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg>חשבון</button>
     </nav>
 
@@ -636,6 +639,7 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
     <section id="sPlaces" class="page" hidden></section>
     <section id="sProfile" class="page" hidden></section>
     <section id="sJourney" class="page" hidden></section>
+    <section id="sRides" class="page" hidden></section>
 
     <section id="sLegal" class="page" hidden style="z-index:50;background:color-mix(in srgb,var(--map) 94%,transparent)"></section>
     <div id="steps" class="overlay" hidden></div>
@@ -2258,18 +2262,18 @@ function pushRecent(p) {
 const mono = (d, sw = 1.9) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
 /* ================= SCREENS ================= */
 let egoCity = '';
-const SCREENS = ['sAuth', 'sHome', 'sSearch', 'sNav', 'sProfile', 'sPlaces', 'sJourney'];
+const SCREENS = ['sAuth', 'sHome', 'sSearch', 'sNav', 'sProfile', 'sPlaces', 'sJourney', 'sRides'];
 const SHEETS = ['sPlace', 'sRoute', 'sStops'];
 function show(mode) {
   if (mode !== S.mode && !['home', 'auth', 'arrive'].includes(mode)) pushNav(mode);
   if (typeof closeLegal === 'function') closeLegal();
   S.mode = mode;
-  const vis = { auth: ['sAuth'], home: ['sHome'], search: ['sSearch'], place: ['sHome'], route: [], nav: ['sNav'], profile: ['sProfile'], places: ['sPlaces'], journey: ['sJourney'], arrive: ['sNav'] }[mode] || [];
+  const vis = { auth: ['sAuth'], home: ['sHome'], search: ['sSearch'], place: ['sHome'], route: [], nav: ['sNav'], profile: ['sProfile'], places: ['sPlaces'], journey: ['sJourney'], rides: ['sRides'], arrive: ['sNav'] }[mode] || [];
   SCREENS.forEach(id => $('#' + id).hidden = !vis.includes(id));
   const sh = { place: 'sPlace', route: 'sRoute', arrive: 'sPlace' }[mode];
   SHEETS.forEach(id => $('#' + id).classList.toggle('off', id !== sh));
-  $('#dock').hidden = !['home', 'profile', 'places', 'journey'].includes(mode);
-  $$('#dock button').forEach(b => b.setAttribute('aria-current', String(b.dataset.tab === { home: 'map', profile: 'me', places: 'places', journey: 'journey' }[mode])));
+  $('#dock').hidden = !['home', 'profile', 'places', 'journey', 'rides'].includes(mode);
+  $$('#dock button').forEach(b => b.setAttribute('aria-current', String(b.dataset.tab === { home: 'map', profile: 'me', places: 'places', journey: 'journey', rides: 'rides' }[mode])));
   $('#homeSheet').classList.toggle('off', !(mode === 'home' && S.cat));
   $('#homeBottom').hidden = mode !== 'home' || !!S.cat;
   $('#where').hidden = mode !== 'home';
@@ -2287,7 +2291,7 @@ function layoutFabs() {
   });
 }
 
-$$('#dock button').forEach(b => b.onclick = () => { const t = b.dataset.tab; if (t === 'map') enterHome(); else if (t === 'places') openPlaces(); else if (t === 'journey') openJourney(); else openProfile(); });
+$$('#dock button').forEach(b => b.onclick = () => { const t = b.dataset.tab; if (t === 'map') enterHome(); else if (t === 'places') openPlaces(); else if (t === 'journey') openJourney(); else if (t === 'rides') openRides(); else openProfile(); });
 
 /* ---------- auth ---------- */
 let authState = { tab: 'signup', step: 'form', contact: '', name: '' };
@@ -3100,7 +3104,7 @@ function goBack() {
     case 'route': clearRibbon(); destMark.visible = false; clearMarkers(m => m.userData.temp || m.userData.stop || m.userData.sugg); S.previewRoute = null; if (S.place) openPlace(S.place); else enterHome(); break;
     case 'nav': confirmBox('לסיים את הניווט?', 'המסלול לא יישמר.', 'סיום ניווט', endNav, true); break;
     case 'arrive': endNav(); break;
-    case 'places': case 'profile': case 'journey': enterHome(); break;
+    case 'places': case 'profile': case 'journey': case 'rides': enterHome(); break;
     case 'home': if (S.cat) { S.cat = null; show('home'); refreshMarkers(); } break;
   }
 }
@@ -4577,7 +4581,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793707068';
+const APP_VERSION = '1793708713';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5273,23 +5277,21 @@ function rideJoinOpen() {
   $('#joinGo').onclick = () => { const P = rideParseLink($('#joinLink').value); if (P) open(P); else $('#joinMsg').textContent = 'לא זיהינו קישור נסיעה. ודאו שהעתקתם את כל הקישור.'; };
   $$('#joinCard [data-jr]').forEach(b => b.onclick = () => open(L[+b.dataset.jr].P));
 }
-function rideChooser() {
-  const m = $('#modal');
-  m.innerHTML = `<div class="mcard glass strong" id="chCard" role="dialog" aria-modal="true" aria-labelledby="chT"><div class="row"><div class="grow"><div class="ptitle" id="chT">נסיעה משותפת</div><div class="psub">מישהו נוסע ואתם צריכים להגיע לאותו כיוון? בדקו איפה כדאי לרדת כדי להגיע מהר יותר</div></div><button class="ibtn press" id="chX" aria-label="סגירה">✕</button></div>
-    <button class="hopc press" id="chJoin"><div class="hoptop"><b>קיבלתי קישור מנהג</b></div><div class="hopbig">מדביקים את הקישור ורואים איפה לרדת</div></button>
-    <button class="hopc press" id="chHop"><div class="hoptop"><b>אני יודע/ת לאן הנהג נוסע</b></div><div class="hopbig">מזינים את היעד שלו ושלכם, בלי קישור</div></button></div>`;
-  m.hidden = false; $('#chX').onclick = () => m.hidden = true; m.onclick = e => { if (e.target === m) m.hidden = true; };
-  $('#chJoin').onclick = rideJoinOpen; $('#chHop').onclick = hopOpen;
+/* the shared-ride section: its own tab, so someone who only wants to join a ride finds it right away */
+function openRides() {
+  const L = Store.data.rides || [], el = $('#sRides');
+  el.innerHTML = `<div class="pagehead"></div><h2>נסיעה משותפת</h2><p class="psub" style="margin:0 4px 12px">מישהו נוסע לכיוון שלכם? תגיעו מהר יותר, גם אם אתם לא הנהג.</p>
+    <button class="jcard glass strong press rcard" id="rcJoin"><b>מצטרפים לנסיעה</b><span>קיבלתם קישור מנהג? הדביקו אותו וראו איפה כדאי לרדת</span></button>
+    <button class="jcard glass strong press rcard" id="rcHop"><b>מקפיצים אותי</b><span>אתם יודעים לאן הנהג נוסע? הזינו את היעד שלו ושלכם</span></button>
+    <button class="jcard glass strong press rcard" id="rcOffer"><b>מציעים לאחרים להצטרף</b><span>אתם נוסעים? בוחרים יעד ושולחים קישור: מי שבדרך שלכם יבקש לרדת בנקודה הנוחה</span></button>
+    ${L.length ? '<div class="psub" style="margin:14px 4px 6px">נסיעות שקיבלתם</div>' + L.map((r, i) => `<button class="hopc press" data-jr="${i}"><div class="hoptop"><b>${esc(r.P.n)} נוסע/ת ל${esc(r.P.dl)}</b></div></button>`).join('') : ''}`;
+  $('#rcJoin').onclick = rideJoinOpen; $('#rcHop').onclick = hopOpen; $('#rcOffer').onclick = () => { enterHome(); openSearch(); toast('בחרו יעד, ובמסך המסלול: "הצעה להצטרף לנסיעה"', 3600); };
+  $$('#sRides [data-jr]').forEach(b => b.onclick = () => { const P = L[+b.dataset.jr].P; RIDE.P = P; RIDE.me = null; RIDE.res = null; ridePaxOpen(); });
+  show('rides');
 }
 {
   const _home = renderHome;
-  renderHome = function () {
-    _home.apply(this, arguments);
-    const q = $('#quick'); if (!q) return; const old = q.querySelector('[data-hop]'); if (old) old.remove(); if (q.querySelector('[data-join]')) return;
-    const b = document.createElement('button'); b.className = 'qp glass press'; b.dataset.join = '1';
-    b.innerHTML = '<i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 8h4M19 6v4"/></svg></i>נסיעה משותפת';
-    b.onclick = rideChooser; q.insertBefore(b, q.children[2] || null);
-  };
+  renderHome = function () { _home.apply(this, arguments); const q = $('#quick'); if (q) { const o = q.querySelector('[data-hop]'); if (o) o.remove(); } };
 }
 
 /* ---------- passenger ---------- */
