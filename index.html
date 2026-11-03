@@ -1649,7 +1649,11 @@ function buildRoute(nodeSeq, edgeSeq, initOff, destLabel, wps = []) {
         if (OUT[nodeSeq[j]].some(ei => !WAYS[EDGES[ei].w].round)) exits++;
       }
       const after = j < k ? WAYS[EDGES[edgeSeq[j]].w] : wOut;
-      man.push({ i, s: nodeS[i], type: 'round', dir: -1, exit: Math.max(1, exits), street: nameOf(after), node });
+      let rdir = 'straight'; // which way the exit points, relative to how we enter (so the sign can show it)
+      if (j < k) { const hin = Math.atan2(NY[nodeSeq[i]] - NY[nodeSeq[i - 1]], NX[nodeSeq[i]] - NX[nodeSeq[i - 1]]), hout = Math.atan2(NY[nodeSeq[j + 1]] - NY[nodeSeq[j]], NX[nodeSeq[j + 1]] - NX[nodeSeq[j]]);
+        let df = hout - hin; while (df > Math.PI) df -= 2 * Math.PI; while (df < -Math.PI) df += 2 * Math.PI;
+        rdir = Math.abs(df) > 2.6 ? 'uturn' : df < -0.5 ? 'right' : df > 0.5 ? 'left' : 'straight'; }
+      man.push({ i, s: nodeS[i], type: 'round', dir: -1, exit: Math.max(1, exits), rdir, street: nameOf(after), node });
       i = j; continue;
     }
     if (wIn.round && wOut.round) continue;
@@ -2767,7 +2771,8 @@ function arrowSVG(kind, sw = 5) { let k = kind, mirror = false; if (k.endsWith('
 function manKind(m) { const side = m.dir > 0 ? 'left' : 'right'; if (m.type === 'turn') return side; if (m.type === 'slight') return 'slight_' + side; if (m.type === 'sharp') return 'sharp_' + side; if (m.type === 'uturn') return m.dir > 0 ? 'uturn' : 'uturn_right'; return 'through'; }
 function manIcon(m) {
   if (m.type === 'arrive' || m.type === 'stop') return `<svg viewBox="0 0 48 48"><path d="M15 43V7M15 9h19l-5 7 5 7H15" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  if (m.type === 'round') return `<svg viewBox="0 0 48 48"><circle cx="24" cy="21" r="10" fill="none" stroke="currentColor" stroke-width="4.5" opacity=".6"/><path d="M24 45V31" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><text x="24" y="26.5" text-anchor="middle" font-family="Rubik" font-weight="800" font-size="14" fill="currentColor">${m.exit}</text></svg>`;
+  if (m.type === 'round') { const d = m.rdir || 'straight', ar = d === 'right' ? 'M33 21H44M40 16.5l5 4.5-5 4.5' : d === 'left' ? 'M15 21H4M8 16.5L3 21l5 4.5' : d === 'uturn' ? 'M24 33v8M19 38l5 5 5-5' : 'M24 11V2M19.5 6.5L24 1.5l4.5 5';
+    return `<svg viewBox="0 0 48 48"><circle cx="24" cy="21" r="10" fill="none" stroke="currentColor" stroke-width="4" opacity=".55"/><path d="M24 47V33" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="${ar}" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><text x="24" y="26" text-anchor="middle" font-family="Rubik" font-weight="800" font-size="13" fill="currentColor">${m.exit}</text></svg>`; }
   return `<svg viewBox="0 0 48 48">${arrowSVG(manKind(m))}</svg>`;
 }
 function instr(m) {
@@ -2778,7 +2783,7 @@ function instr(m) {
     case 'sharp': return Lf ? 'פנייה חדה שמאלה' : 'פנייה חדה ימינה';
     case 'uturn': return 'פניית פרסה';
     case 'straight': return 'ממשיכים ישר';
-    case 'round': return `בכיכר, יציאה ${m.exit}`;
+    case 'round': return `בכיכר, יציאה ${m.exit}${{ right: ' ימינה', left: ' שמאלה', straight: ' ישר', uturn: ' חזרה' }[m.rdir] || ''}`;
     case 'stop': return 'עצירה בדרך';
     case 'arrive': return 'מגיעים ליעד';
   }
@@ -4591,7 +4596,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793716220';
+const APP_VERSION = '1793716394';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
