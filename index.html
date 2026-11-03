@@ -86,6 +86,7 @@
 .ropts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
 .ropt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:10px 14px;border-radius:18px;background:var(--fill);border:2px solid transparent;text-align:start;transition:transform .15s}
 .ropt span{font-size:13px;font-weight:600;color:var(--ink2)}.ropt b{font-family:var(--fn);font-size:22px;font-weight:600;line-height:1.1}.ropt b small{font-family:var(--f);font-size:12px;font-weight:500;color:var(--mute)}.ropt>small{font-size:12px;color:var(--mute)}
+.rdata{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.rdata i{font-style:normal;font-size:12px;font-weight:600;padding:3px 8px;border-radius:10px;background:var(--fill2,rgba(127,127,127,.12));color:var(--ink)}.rvia{margin-top:4px}.rhint{font-size:12px;color:var(--mute);margin:2px 4px 0}.rwhy{margin:8px 0 2px;padding:12px 14px;border-radius:16px;background:var(--fill);font-size:13px;line-height:1.5;color:var(--ink2)}.rwhy b{color:var(--ink)}
 .ropt{position:relative}.ropt[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 10%,var(--fill))}
 .ropt[aria-pressed="true"]::after,.jsave::after{content:"";position:absolute;inset:-2px;border-radius:inherit;padding:2px;background:linear-gradient(120deg,var(--accent),var(--accent2));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
 .ropt[aria-pressed="true"] span{color:var(--accent)}
@@ -2586,7 +2587,7 @@ function renderRouteSheet() {
     <div class="facts" style="align-items:center;margin-top:6px"><button class="link" id="rAddStop" style="display:inline-flex;align-items:center;gap:6px">${ICON.plus.replace('<svg', '<svg style="width:16px;height:16px"')} ${S.showSugg ? 'הסתרת עצירות' : 'עצירה בדרך'}</button><span class="grow"></span><button class="link" id="rSteps" style="color:var(--ink2)">${r.sigs.length} רמזורים · ${st.turns} פניות ›</button></div>
     <div id="suggBox"${S.showSugg ? '' : ' hidden'}></div>`;
   $('#rClose').onclick = goBack; $('#rFrom').onclick = openOriginPicker;
-  $$('#routeBody [data-rmode]').forEach(b => b.onclick = () => { if (S.routeMode === b.dataset.rmode) return; S.routeMode = b.dataset.rmode; useRoute(S.alt[S.routeMode]); });
+  $$('#routeBody [data-rmode]').forEach(b => b.onclick = () => { if (S.routeMode === b.dataset.rmode) return; S.routeMode = b.dataset.rmode; useRoute(S.alt[S.routeMode]); try { fitRoute(S.alt[S.routeMode]); } catch (e) { } });
   $('#rSteps').onclick = () => openSteps(r);
   $$('#routeBody [data-rm]').forEach(b => b.onclick = () => { S.stops.splice(+b.dataset.rm, 1); openRoutePreview(S.dest, true); });
   { const tb = $('#rToll'); if (tb) tb.onclick = () => { Store.data.prefs.avoidToll = !Store.data.prefs.avoidToll; Store.save(); openRoutePreview(S.dest, true); }; }
@@ -3365,14 +3366,17 @@ $('#light').onclick = () => {
 /* ================= NATIV NAVIGATE: fast vs smooth ================= */
 function routeOptsHTML() {
   const A = S.alt || {}, f = A.fast, s = A.smooth; if (!f) return '';
-  const sf = routeStats(f), mf = Math.max(1, Math.round(sf.sec / 60));
-  const ss0 = s ? routeStats(s) : null;
-  if (!s || (s.sigs.length >= f.sigs.length && ss0.turns >= sf.turns) || (Math.abs(s.total - f.total) < f.total * 0.02 && s.sigs.length === f.sigs.length)) return '';
-  const ss = routeStats(s), ms = Math.max(1, Math.round(ss.sec / 60));
-  const dSig = f.sigs.length - s.sigs.length, dMin = ms - mf;
-  const sel = S.routeMode === 'smooth' ? 'smooth' : 'fast';
-  const opt = (k, he, m, line) => `<button class="ropt press" data-rmode="${k}" aria-pressed="${sel === k}"><span>${he}</span><b>${m}<small> דק׳</small></b><small>${line}</small></button>`;
-  return `<div class="ropts" role="group" aria-label="איזה מסלול">${opt('fast', 'הכי מהיר', mf, 'מגיעים הכי מוקדם')}${opt('smooth', 'הכי רגוע', ms, (dSig > 0 ? dSig + ' רמזורים פחות' : 'פחות פניות') + (dMin > 0 ? ' · +' + dMin + ' דק׳' : ''))}</div>`;
+  const sf = routeStats(f), ss0 = s ? routeStats(s) : null;
+  // "calm" is offered only when it is really calmer: clearly fewer lights or turns, not more turns, and not much slower
+  if (!s || !((f.sigs.length - s.sigs.length >= 2) || (sf.turns - ss0.turns >= 3)) || ss0.turns > sf.turns + 2 || s.sigs.length > f.sigs.length || (ss0.sec - sf.sec) / 60 > Math.max(5, sf.sec / 60 * 0.3)) return s ? '<div class="rhint" style="margin:8px 4px 0">בדקנו מסלול רגוע יותר, ואין כזה שבאמת חוסך רמזורים או פניות בלי להאריך משמעותית. לכן מוצג המסלול המהיר בלבד.</div>' : '';
+  const ss = routeStats(s), mf = Math.max(1, Math.round(sf.sec / 60)), ms = Math.max(1, Math.round(ss.sec / 60));
+  const dSig = f.sigs.length - s.sigs.length, dTurn = sf.turns - ss.turns, dMin = ms - mf, dKm = (ss.dist - sf.dist) / 1000;
+  const sel = S.routeMode === 'smooth' ? 'smooth' : 'fast', km = x => (x / 1000).toFixed(1);
+  const card = (k, he, what, m, st, sig) => `<button class="ropt press" data-rmode="${k}" aria-pressed="${sel === k}"><span>${he}</span><b>${m}<small> דק׳</small></b><small>${what}</small>
+    <div class="rdata"><i>${km(st.dist)} ק״מ</i><i>${sig} רמזורים</i><i>${st.turns} פניות</i></div>${st.via.length ? `<small class="rvia">דרך ${esc(st.via.join(' ו'))}</small>` : ''}</button>`;
+  const gains = [dSig > 0 ? dSig + ' רמזורים' : '', dTurn > 0 ? dTurn + ' פניות' : ''].filter(Boolean).join(' ו'), costs = [dMin > 0 ? dMin + ' דק׳' : '', dKm > 0.15 ? dKm.toFixed(1) + ' ק״מ' : ''].filter(Boolean).join(' ו');
+  const why = `<div class="rwhy"><b>מה ההבדל?</b> "הכי מהיר" הוא הזמן הקצר ביותר לפי מהירויות הכבישים. "הכי רגוע" מעדיף כבישים ראשיים ועוקף רמזורים, פניות וסמטאות קטנות: ${gains ? 'חוסך ' + gains : 'פחות עצירות'}${costs ? ', ובתמורה ' + (dMin > 0 ? 'מוסיף ' : 'משנה ') + costs : (dMin <= 0 ? ' ובלי להאריך את הנסיעה' : '')}. ${dMin <= 1 && dSig <= 1 ? 'ההבדל כאן קטן, ושניהם טובים.' : ''} הזמנים הם לפי מהירויות רגילות, בלי תנועה בזמן אמת.</div>`;
+  return `<div class="ropts" role="group" aria-label="איזה מסלול">${card('fast', 'הכי מהיר', 'מגיעים הכי מוקדם', mf, sf, f.sigs.length)}${card('smooth', 'הכי רגוע', 'פחות עצירות ופניות', ms, ss, s.sigs.length)}</div><div class="rhint">לחצו על מסלול כדי לראות אותו על המפה</div>${why}`;
 }
 
 /* ================= NATIV SIDEVIEW: what is on your right and left ================= */
@@ -4587,7 +4591,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793715641';
+const APP_VERSION = '1793716220';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
