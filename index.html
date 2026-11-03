@@ -265,6 +265,13 @@ input{font:inherit;color:inherit}
 #sOpen svg{width:22px;height:22px;color:var(--ink2)}
 #sOpenBtn{display:flex;align-items:center;gap:12px;flex:1;min-width:0;align-self:stretch;text-align:right;color:inherit;padding:0}#sOpen span{flex:1;font-size:17px;font-weight:600;color:var(--ink2)}
 #sOpen i{width:42px;height:42px;border-radius:50%;background:var(--fill);display:grid;place-items:center;font-style:normal}
+/* the destination box is the point of the app: big, central, first */
+#homeBottom #sOpen{height:88px;padding:0 16px 0 12px;gap:12px;border-radius:32px;box-shadow:0 10px 34px rgba(16,168,122,.22),0 2px 8px rgba(0,0,0,.08)}
+#homeBottom #sOpen i{width:56px;height:56px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}#homeBottom #sOpen i svg{width:26px;height:26px;color:#fff}
+#homeBottom #sOpen span{display:flex;flex-direction:column;gap:2px;font-size:15px}#homeBottom #sOpen span b{font-size:26px;font-weight:700;color:var(--ink);line-height:1.15}#homeBottom #sOpen span small{font-size:14px;font-weight:500;color:var(--ink2)}
+#homeBottom #sOpen #sMic{width:56px!important;height:56px!important;margin-inline-start:0;background:color-mix(in srgb,var(--accent) 16%,var(--fill))}#homeBottom #sOpen #sMic svg{width:26px;height:26px}
+#homeBottom #sWx{align-self:flex-start;padding:6px 12px;border-radius:999px;background:var(--fill);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);font-size:14px}
+
 #quick{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
 #quick::-webkit-scrollbar{display:none}
 .qp{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 8px;border-radius:999px;font-size:15px;font-weight:600;white-space:nowrap;flex:none}
@@ -588,7 +595,7 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
       <div id="topL"><div class="stack glass"><button id="fab3d" class="press" aria-label="מבט תלת־ממדי או מלמעלה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></button><button id="fabMe" class="press" aria-label="למיקום שלי"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l6.5 18-6.5-3.8-6.5 3.8z"/></svg></button></div></div>
       <div id="homeBottom">
         <div id="quick"></div>
-        <div id="sOpen" class="glass press" role="search"><button id="sOpenBtn" type="button"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></i><span>לאן נוסעים?</span></button></div>
+        <div id="sOpen" class="glass press" role="search"><button id="sOpenBtn" type="button"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></i><span><b>לאן נוסעים?</b><small>כתובת, מקום או שם עסק</small></span></button></div>
       </div>
       <div class="sheet glass strong off" id="homeSheet"><div class="grab" aria-hidden="true"></div><div class="scroll" id="catBody"></div></div>
     </section>
@@ -4596,7 +4603,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793716394';
+const APP_VERSION = '1793728056';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -4674,7 +4681,7 @@ function voiceSearch() {
 const MIC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/></svg>';
 {
   const m = document.createElement('button'); m.type = 'button'; m.id = 'sMic'; m.className = 'vmic press'; m.setAttribute('aria-label', 'חיפוש בקול'); m.innerHTML = MIC_SVG;
-  $('#sOpenBtn').after(m);
+  $('#sOpenBtn').after(m); { const wx = $('#sWx'); if (wx) $('#homeBottom').insertBefore(wx, $('#quick')); }
   m.addEventListener('click', e => { e.stopPropagation(); voiceSearch(); });
   const b = document.createElement('button'); b.id = 'qMic'; b.className = 'vmic press'; b.setAttribute('aria-label', 'חיפוש בקול'); b.innerHTML = MIC_SVG;
   $('.sfield').appendChild(b); b.onclick = e => { e.preventDefault(); $('#q').blur(); voiceSearch(); };
