@@ -2968,6 +2968,7 @@ function onTap(e) {
   if (cam.mode === 'chase' || S.mode === 'auth' || S.mode === 'nav' || S.mode === 'arrive') return;
   const r = canvas.getBoundingClientRect(), ndc = new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   const rc = new THREE.Raycaster(); rc.setFromCamera(ndc, camera);
+  if (S.teachPick) { const hp = new THREE.Vector3(); if (rc.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hp)) teachAt(hp.x, -hp.z); return; }
   if (S.mapPick) { const hp = new THREE.Vector3(); if (rc.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hp)) { S.mapPick = false; const p = reverseGeocode(hp.x, -hp.z); const back = S.originBack; S.originBack = null; setOrigin({ src: 'map', label: p.label, x: hp.x, y: -hp.z }, !!back); if (back) openRoutePreview(back, true); } return; }
   const hits = rc.intersectObjects(markerGroup.children, false);
   if (S.mode === 'route' && hits.length && hits[0].object.userData.sugg) { const p = hits[0].object.userData.poi, o = S.sugg.find(x => x.p.id === p.id); if (o) { S.stops.push(Object.assign(placeFromPoi(p), { along: o.along })); S.stops.sort((a, b) => a.along - b.along); openRoutePreview(S.dest, true); toast('נוספה עצירה: ' + p.name); } return; }
@@ -4603,7 +4604,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793728056';
+const APP_VERSION = '1793747589';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5487,6 +5488,64 @@ async function rideDriverOpen(Q) {
   const go = () => { if (S.mode === 'home') { if (ride) { rideSaveReceived(data); RIDE.P = data; RIDE.me = null; RIDE.res = null; ridePaxOpen(); } else rideDriverOpen(data); } else if (tries++ < 40) setTimeout(go, 500); };
   setTimeout(go, 1800);
 })();
+
+/* ================= LEARNING MAP: the address layer that grows from real use =================
+   OpenStreetMap lacks many house numbers and places. Instead of waiting for a source, the app learns
+   exactly where things are, from the one person who knows: you.
+   1. Not found, or only approximate? Tap the map once and the place is remembered under what you typed.
+   2. You drove to an approximate address and stopped next to it? One tap saves where you really arrived.
+   Learned places come first in search from then on. Everything stays on this device. */
+const LEARN = { q: '' };
+const learnList = () => (Store.data.learned = Store.data.learned || []);
+function learnSave(q, label, x, y, src) {
+  const k = norm(q || label), L = learnList(), i = L.findIndex(e => e.k === k && Math.hypot(e.x - x, e.y - y) < 400);
+  const rec = { k, label: (label || q).trim(), x, y, src: src || 'map', t: Date.now(), n: 1 };
+  if (i >= 0) { rec.n = (L[i].n || 1) + 1; L[i] = rec; } else L.unshift(rec);
+  Store.data.learned = L.slice(0, 300); Store.save();
+}
+{
+  const _sa = searchAll;
+  searchAll = function (raw) {
+    const out = _sa(raw), full = norm(raw); if (!full || full.length < 2) return out;
+    const hits = learnList().filter(e => e.k === full || e.k.startsWith(full) || (full.length > 3 && e.k.includes(full)));
+    hits.slice(0, 3).reverse().forEach(e => out.unshift({ kind: 'pin', label: e.label, sub: 'מקום שמרתם · מיקום מדויק', x: e.x, y: e.y, learned: true, score: 4000, grp: 's' }));
+    return out.filter((r, i) => !(r.recent && out.some((o, j) => j < i && o.learned && o.label === r.label)));
+  };
+}
+{
+  const _rr = renderResults;
+  renderResults = function () {
+    _rr.apply(this, arguments);
+    const raw = $('#q').value.trim(); if (raw.length < 2) return;
+    const top = curResults[0], weak = !curResults.length || (top && top.approx && !top.learned), box = $('#sResults');
+    if (!weak) return;
+    const d = document.createElement('div'); d.className = 'card glass strong'; d.style.marginTop = '10px';
+    d.innerHTML = `<button class="li press" id="teachBtn"><span class="ic" style="color:var(--accent)">${ICON.pin}</span><span class="t"><b>${curResults.length ? 'המיקום לא מדויק? סמנו על המפה' : 'לא מצאנו? סמנו על המפה'}</b><span>נזכור את "${esc(raw)}" ונציג אותו ראשון בחיפוש הבא</span></span></button>`;
+    box.appendChild(d);
+    $('#teachBtn').onclick = () => { LEARN.q = raw; S.teachPick = true; enterHome(); cam.tdist = Math.min(cam.tdist || 520, 700); toast('הקישו על המפה במקום המדויק של "' + raw + '"', 5000); };
+  };
+  $('#q').removeEventListener('input', _rr); $('#q').addEventListener('input', renderResults);
+}
+function teachAt(x, y) {
+  S.teachPick = false; const q = LEARN.q; if (!q) return;
+  learnSave(q, q, x, y, 'map'); toast('למדתי: ' + q + '. מעכשיו זה יופיע ראשון.', 3200);
+  pickResult({ kind: 'pin', label: q, sub: 'מקום שמרתם · מיקום מדויק', x, y, learned: true });
+}
+{
+  const _arr = onArrive;
+  onArrive = function () {
+    _arr.apply(this, arguments);
+    try {
+      const p = S.dest, f = typeof LIVE !== 'undefined' && LIVE.fix, btn = $('#arDone'); if (!p || !f || !btn || !liveActive()) return;
+      const d = Math.hypot(f.x - p.x, f.y - p.y);
+      if (!(p.approx || p.kind === 'addr' || p.kind === 'pin') || p.learned || d < 20 || d > 250) return;
+      const b = document.createElement('button'); b.className = 'act'; b.style.cssText = 'width:100%;margin:6px 0'; b.id = 'arLearn';
+      b.innerHTML = `<i>${ICON.pin}</i>הגעתי למקום המדויק? שמרו אותו (${Math.round(d)} מ׳ מהנקודה שהוצגה)`;
+      b.onclick = () => { learnSave(p.label, p.label, f.x, f.y, 'arrival'); b.remove(); toast('נשמר. בפעם הבאה ננווט בדיוק לכאן.', 3000); };
+      btn.before(b);
+    } catch (e) { }
+  };
+}
 
 /* ================= DRIVE HMI LOOK =================
    While driving the map turns into a calm instrument view: muted cool ground, slate roads with crisp white
