@@ -4607,7 +4607,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793788802';
+const APP_VERSION = '1793791573';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5140,7 +5140,7 @@ function hopEval(r, me) { // everything that depends on a ready driver route and
   // alternatives to compare against
   const endN = r.nodeSeq[r.nodeSeq.length - 1], stayArr = TT0 + (wf[endN] < Infinity ? wf[endN] : Infinity);
   const st = currentStartNode().node, walkNowArr = wf[st] < Infinity ? wf[st] : Infinity;
-  return { r, picks, stayArr, walkNowArr, TT0, transit: !!HOP.transit, dark, wf, meNode };
+  return { r, picks, stayArr, walkNowArr, TT0, transit: true, dark, wf, meNode, me };
 }
 
 /* ---------- screen ---------- */
@@ -5163,11 +5163,11 @@ function hopLeg(c) {
   const sc = HOP.mode === 'scoot', sec = sc ? HOP_SCOOT.setup + c.walk * HOP_WALK / HOP_SCOOT.v : c.walk;
   return { sec, arr: c.tDrop + sec, hi: c.tDrop * 1.25 + sec * (sc ? 1.3 : 1.15), word: sc ? 'קורקינט' : 'הליכה' };
 }
-const hopPicks = R => R.picks.map(c => Object.assign({}, c, hopLeg(c))).sort((a, b) => a.arr - b.arr);
+const hopPicks = R => HOP.mode === 'transit' ? (R.tr || []) : R.picks.map(c => Object.assign({}, c, hopLeg(c))).sort((a, b) => a.arr - b.arr);
 function hopModesHTML() {
   const on = k => `aria-pressed="${HOP.mode === k}"`;
-  const note = HOP.mode === 'scoot' ? 'הערכה: כ-14 קמ״ש, ועוד כ-1.5 דק׳ למצוא קורקינט שיתופי. תלוי שיש כזה בסביבה.' : 'הליכה לפי הרחובות, בקצב רגיל.';
-  return `<div class="hopmodes" role="group" aria-label="איך מגיעים מנקודת הירידה"><button class="press" data-hm="walk" ${on('walk')}>הליכה</button><button class="press" data-hm="scoot" ${on('scoot')}>קורקינט</button><button disabled title="תחבורה ציבורית עוד לא מחוברת">תחב״צ · בקרוב</button></div><div class="hopnote">${note}</div>`;
+  const note = HOP.mode === 'scoot' ? 'הערכה: כ-14 קמ״ש, ועוד כ-1.5 דק׳ למצוא קורקינט שיתופי. תלוי שיש כזה בסביבה.' : HOP.mode === 'transit' ? 'אוטובוסים, רכבת ורכבת קלה לפי לוח הזמנים הרשמי של גוש דן. לא בזמן אמת.' : 'הליכה לפי הרחובות, בקצב רגיל.';
+  return `<div class="hopmodes" role="group" aria-label="איך מגיעים מנקודת הירידה"><button class="press" data-hm="walk" ${on('walk')}>הליכה</button><button class="press" data-hm="scoot" ${on('scoot')}>קורקינט</button><button class="press" data-hm="transit" ${on('transit')}>תחב״צ</button></div><div class="hopnote">${note}</div>`;
 }
 function hopCompare(R, P) {
   const b = P[0], rows = [];
@@ -5182,28 +5182,56 @@ function hopMetrics(c) {
   return `<div class="hopm"><div><small>יורדים בעוד</small><b>${fmtMin(c.tDrop)}</b></div><div><small>${c.word}</small><b>${fmtMin(c.sec)}</b></div><div><small>מגיעים</small><b>${hopClock(c.arr)}</b></div></div>`;
 }
 function hopCard(c, i) {
-  return `<button class="hopc press${i === 0 ? ' best' : ''}" data-hp="${i}"><div class="hoptop"><b><span class="hopnum">${i + 1}</span>רדו ב${esc(c.street)}</b><span class="hopbadge">${i === 0 ? 'הכי משתלם' : 'חלופה'}</span></div>${hopMetrics(c)}<div class="hopeta"><span>בדרך כלל עד ${hopClock(c.hi)}</span></div></button>`;
+  return `<button class="hopc press${i === 0 ? ' best' : ''}" data-hp="${i}"><div class="hoptop"><b><span class="hopnum">${i + 1}</span>רדו ב${esc(c.street)}</b><span class="hopbadge">${i === 0 ? 'הכי משתלם' : 'חלופה'}</span></div>${c.J ? `<div class="trlegs">${trLines(c.J)}</div>` : ''}${hopMetrics(c)}<div class="hopeta"><span>${c.J ? 'לפי לוח זמנים, בלי זמן אמת' : 'בדרך כלל עד ' + hopClock(c.hi)}</span></div></button>`;
+}
+const hopRefresh = () => (HOP.rerender || hopRender)();
+function hopOutHTML(R) {
+  if (HOP.busy) return '<div class="hopnote">מחשבים נקודות ירידה לאורך המסלול…</div>';
+  if (R && R.err) return `<div class="hopnote bad">${esc(R.err)}</div>`;
+  if (!R) return '';
+  const P = hopPicks(R), V = hopVerdict(Object.assign({}, R, { picks: P.length ? P : R.picks }));
+  let body;
+  if (HOP.mode === 'transit' && R.trBusy) body = '<div class="hopnote">בודקים קווים מכל נקודת ירידה…</div>';
+  else if (HOP.mode === 'transit' && R.trErr) body = `<div class="hopnote bad">${esc(R.trErr)}</div>`;
+  else if (HOP.mode === 'transit' && !P.length) body = '<div class="hopnote">לא מצאנו קו שמתאים מנקודות הירידה בדרך. נסו הליכה או קורקינט.</div>';
+  else body = `${hopCompare(R, P)}${P.map((c, i) => hopCard(c, i)).join('')}${P.length ? '<button class="mubtn press hopmap" id="hopMap">הצגה על המפה</button>' : ''}`;
+  return `<div class="hopv ${HOP.mode === 'transit' && !P.length ? 'none' : V.kind}"><b>${HOP.mode === 'transit' && !P.length ? 'אין אפשרות תחב״צ' : V.t}</b><span>${HOP.mode === 'transit' && !P.length ? 'נסו הליכה או קורקינט.' : V.s}</span></div>${R.picks.length ? hopModesHTML() : ''}${body}
+    <div class="hopnote">הזמנים הם הערכה לפי המפה, בלי עומסי תנועה בזמן אמת. תחבורה ציבורית לפי לוח הזמנים הרשמי.${R.dark ? ' בשעות החשכה נותנים משקל גדול יותר להליכה קצרה.' : ''}</div>`;
+}
+function hopBindOut(root) {
+  const mp = $(root + ' #hopMap'); if (mp) mp.onclick = () => hopShowMap(0);
+  $$(root + ' [data-hp]').forEach(b => b.onclick = () => hopShowMap(+b.dataset.hp));
+  $$(root + ' [data-hm]').forEach(b => b.onclick = () => { HOP.mode = b.dataset.hm; HOP.sel = 0; if (HOP.mode === 'transit' && HOP.res && !HOP.res.tr && !HOP.res.trBusy) hopEnsureTransit(HOP.res); hopRefresh(); });
+}
+/* last stretch by public transport: plan from several drop-off points along the driver's route, keep the earliest arrivals */
+async function hopEnsureTransit(R) {
+  R.trBusy = true; R.trErr = null; hopRefresh();
+  try {
+    const D = await trLoad(), r = R.r, me = R.me, now = trNow(), cands = [], step = Math.max(400, Math.floor((r.M - 120) / 36));
+    const j0 = Math.floor(r.sStart || 0); let n = 0;
+    for (let j = j0 + 60; j < r.M - 80; j += step) {
+      const e = EDGES[r.edgeSeq[r.SE[j]]], w = WAYS[e.w]; if (w.speedMs > HOP_VMAX || w.isLink || w.round) continue;
+      const x = r.DX[j], y = r.DY[j], tDrop = R.TT0 - r.TT[j];
+      const J = trcPlan(D, [x, y], [me.x, me.y], now + tDrop).filter(q => q.legs.some(l => l.t === 'ride')).sort((a, b) => a.arr - b.arr)[0];
+      if (J) { const arr = J.arr - now, first = J.legs.find(l => l.t === 'ride'); cands.push({ j, x, y, street: nameOf(w), tDrop, walk: J.legs[0].t === 'walk' ? J.legs[0].sec : 0, arr, sec: arr - tDrop, hi: arr * 1.12 + 120, word: 'תחב״צ', how: 'transit', J }); }
+      if (++n % 3 === 0) await new Promise(r2 => setTimeout(r2, 0));
+    }
+    cands.sort((a, b) => a.arr - b.arr); const picks = []; for (const c of cands) { if (picks.every(p => Math.abs(p.j - c.j) >= 500)) picks.push(c); if (picks.length === 3) break; }
+    R.tr = picks;
+  } catch (e) { console.error(e); R.trErr = 'לא הצלחנו לטעון את לוחות הזמנים. בדקו חיבור ונסו שוב.'; }
+  R.trBusy = false; hopRefresh();
 }
 function hopRender() {
   const m = $('#modal'); if (!m.querySelector('#hopCard')) return;
   const d = hopPlace('drv'), me = hopPlace('me'), R = HOP.res, ok = d && me;
-  let out = '';
-  if (HOP.busy) out = '<div class="hopnote">מחשבים נקודות ירידה לאורך המסלול…</div>';
-  else if (R && R.err) out = `<div class="hopnote bad">${esc(R.err)}</div>`;
-  else if (R) { const P = hopPicks(R), V = hopVerdict(Object.assign({}, R, { picks: P }));
-    out = `<div class="hopv ${V.kind}"><b>${V.t}</b><span>${V.s}</span></div>${R.picks.length ? hopModesHTML() : ''}${hopCompare(R, P)}${P.map((c, i) => hopCard(c, i)).join('')}
-    ${P.length ? '<button class="mubtn press hopmap" id="hopMap">הצגה על המפה</button>' : ''}
-    <div class="hopnote">${R.transit ? 'כולל תחבורה ציבורית.' : 'תחבורה ציבורית עוד לא מחוברת: כדי להציג אותה צריך נתוני לוחות זמנים, ונוסיף אותה בשלב הבא. הזמנים הם הערכה.'}${R.dark ? ' בשעות החשכה נותנים משקל גדול יותר להליכה קצרה.' : ''}</div>`; }
-  $('#hopOut').innerHTML = out;
+  $('#hopOut').innerHTML = hopOutHTML(R);
   $('#hopDrv').querySelector('span').textContent = d ? d.label : 'בחירת יעד';
   $('#hopMe').querySelector('span').textContent = me ? me.label : 'בחירת יעד';
   $('#hopGo').disabled = !ok || HOP.busy; $('#hopGo').textContent = HOP.busy ? 'מחשבים…' : 'איפה לרדת?';
-  const mp = $('#hopMap'); if (mp) mp.onclick = () => hopShowMap(0);
-  $$('#hopOut [data-hp]').forEach(b => b.onclick = () => hopShowMap(+b.dataset.hp));
-  $$('#hopOut [data-hm]').forEach(b => b.onclick = () => { HOP.mode = b.dataset.hm; hopRender(); });
+  hopBindOut('#hopOut');
 }
 function hopOpen() {
-  const m = $('#modal');
+  HOP.rerender = null; HOP.reopen = null; const m = $('#modal');
   m.innerHTML = `<div class="mcard glass strong" id="hopCard" role="dialog" aria-modal="true" aria-labelledby="hopT"><div class="row"><div class="grow"><div class="ptitle" id="hopT">מקפיצים אותי</div><div class="psub">מישהו נוסע, ואתם צריכים להגיע למקום אחר. איפה הכי כדאי לרדת?</div></div><button class="circ press" id="hopX" style="background:var(--fill)" aria-label="סגירה">${ICON.x}</button></div>
     <button class="hopfield press" id="hopDrv"><small>לאן הנהג נוסע</small><span></span></button>
     <button class="hopfield press" id="hopMe"><small>לאן אתם צריכים להגיע</small><span></span></button>
@@ -5257,22 +5285,24 @@ function hopMapDraw(fit) {
   P.forEach((c, k) => { const sp = addMarker(k === HOP.sel ? 'parking' : 'dest', c.x, c.y, { temp: true }, k === HOP.sel); sp.material.map = hopPinTex(k + 1, k === HOP.sel); });
   if (me) addMarker('home', me.x, me.y, { temp: true }, true);
   const c = P[HOP.sel] || P[0]; if (!c || !me) return;
+  if (c.J) { HOPMAP.grp = new THREE.Group(); const xs = [egoX, c.x, me.x], ys = [egoY, c.y, me.y]; trAddLegs(HOPMAP.grp, c.J, [c.x, c.y], [me.x, me.y], xs, ys); scene.add(HOPMAP.grp); if (fit) setTimeout(() => fitBounds(xs, ys, 1.4, 0.5), 150); return; }
   const pts = hopPathPts(R, c, me); HOPMAP.grp = new THREE.Group(); HOPMAP.grp.add(hopStrip(pts, HOP.mode === 'scoot' ? 0xffb72e : 0x2fd6a6, 11)); scene.add(HOPMAP.grp);
   if (fit) { const xs = [egoX, c.x, me.x], ys = [egoY, c.y, me.y]; for (const p of pts) { xs.push(p[0]); ys.push(p[1]); } setTimeout(() => fitBounds(xs, ys, 1.5, 0.52), 150); }
 }
 function hopBarRender() {
+  if (!hopPicks(HOP.res).length) { hopMapExit(true); return; }
   let bar = $('#hopBar'); if (!bar) { bar = document.createElement('div'); bar.id = 'hopBar'; bar.className = 'glass strong'; $('#device').appendChild(bar); }
-  const R = HOP.res, P = hopPicks(R), c = P[HOP.sel] || P[0], base = Math.min(R.stayArr, R.walkNowArr), save = base < Infinity ? base - c.arr : 0;
+  const R = HOP.res, P = hopPicks(R), me = R.me || hopPlace('me'), c = P[HOP.sel] || P[0], base = Math.min(R.stayArr, R.walkNowArr), save = base < Infinity ? base - c.arr : 0;
   bar.innerHTML = `<div class="hbtop"><div class="hbchips" role="group" aria-label="נקודות ירידה">${P.map((p, k) => `<button class="press" data-hs="${k}" aria-pressed="${k === HOP.sel}" aria-label="נקודה ${k + 1}">${k + 1}</button>`).join('')}</div><button class="circ press" id="hbBack" aria-label="חזרה לתוצאות" style="background:var(--fill)">✕</button></div>
     <b class="hbt">רדו ב${esc(c.street)}</b>${save >= 60 ? `<div class="hbs">חוסך ${fmtMin(save)} לעומת ${R.stayArr <= R.walkNowArr ? 'לנסוע עד הסוף' : 'ללכת מעכשיו'}</div>` : ''}
-    ${hopMetrics(c)}${hopModesHTML()}`;
+    ${c.J ? `<div class="trlegs">${trLines(c.J)}</div>` : ''}${hopMetrics(c)}${c.J ? `<ol class="trsteps">${(TRL.o = 'נקודת הירידה', TRL.d = me.label, trStepsHTML(c.J))}</ol>` : ''}${hopModesHTML()}`;
   $$('#hopBar [data-hs]').forEach(b => b.onclick = () => { HOP.sel = +b.dataset.hs; hopMapDraw(true); hopBarRender(); });
-  $$('#hopBar [data-hm]').forEach(b => b.onclick = () => { HOP.mode = b.dataset.hm; HOP.sel = 0; hopMapDraw(false); hopBarRender(); });
+  $$('#hopBar [data-hm]').forEach(b => b.onclick = async () => { HOP.mode = b.dataset.hm; HOP.sel = 0; if (HOP.mode === 'transit' && !R.tr && !R.trBusy) { await hopEnsureTransit(R); } if (!hopPicks(R).length) { HOP.mode = 'walk'; toast('אין תחב״צ מהנקודות בדרך', 2600); } hopMapDraw(true); hopBarRender(); });
   $('#hbBack').onclick = () => hopMapExit(true);
 }
 function hopMapExit(reopen) {
   if (!HOPMAP.on) return; HOPMAP.on = false; const bar = $('#hopBar'); if (bar) bar.remove();
-  hopOverlayClear(); try { clearRibbon(); } catch (e) { } S.previewRoute = null; if (reopen) { enterHome(); hopOpen(); }
+  hopOverlayClear(); try { clearRibbon(); } catch (e) { } S.previewRoute = null; if (reopen) { enterHome(); (HOP.reopen || hopOpen)(); }
 }
 setInterval(() => { if (HOPMAP.on && S.mode !== 'home') hopMapExit(false); else if (HOPMAP.on) { const d = $('#dock'); if (d && !d.hidden) d.hidden = true; } }, 400);
 function hopShowMap(i) {
@@ -5383,13 +5413,12 @@ function rideJoinOpen() {
 /* the shared-ride section: its own tab, so someone who only wants to join a ride finds it right away */
 function openRides() {
   const L = Store.data.rides || [], el = $('#sRides');
-  el.innerHTML = `<div class="pagehead"></div><h2>נסיעה משותפת</h2><p class="psub" style="margin:0 4px 12px">מישהו נוסע לכיוון שלכם? תגיעו מהר יותר, גם אם אתם לא הנהג.</p>
-    <button class="jcard glass strong press rcard" id="rcTr"><b>תחבורה ציבורית</b><span>אוטובוסים, רכבות ורכבת קלה מדלת לדלת, לפי לוח הזמנים הרשמי</span></button>
+  el.innerHTML = `<div class="pagehead"><button class="circ glass press" id="rsBack" aria-label="חזרה">${ICON.chev.replace('M15 6l-6 6 6 6', 'M9 6l6 6-6 6')}</button></div><h2>נסיעה משותפת</h2><p class="psub" style="margin:0 4px 12px">מישהו נוסע לכיוון שלכם? תגיעו מהר יותר, גם אם אתם לא הנהג.</p>
     <button class="jcard glass strong press rcard" id="rcJoin"><b>מצטרפים לנסיעה</b><span>קיבלתם קישור מנהג? הדביקו אותו וראו איפה כדאי לרדת</span></button>
     <button class="jcard glass strong press rcard" id="rcHop"><b>מקפיצים אותי</b><span>אתם יודעים לאן הנהג נוסע? הזינו את היעד שלו ושלכם</span></button>
     <button class="jcard glass strong press rcard" id="rcOffer"><b>מציעים לאחרים להצטרף</b><span>אתם נוסעים? בוחרים יעד ושולחים קישור: מי שבדרך שלכם יבקש לרדת בנקודה הנוחה</span></button>
     ${L.length ? '<div class="psub" style="margin:14px 4px 6px">נסיעות שקיבלתם</div>' + L.map((r, i) => `<button class="hopc press" data-jr="${i}"><div class="hoptop"><b>${esc(r.P.n)} נוסע/ת ל${esc(r.P.dl)}</b></div></button>`).join('') : ''}`;
-  $('#rcTr').onclick = () => trOpen(); $('#rcJoin').onclick = rideJoinOpen; $('#rcHop').onclick = hopOpen; $('#rcOffer').onclick = () => { enterHome(); openSearch(); toast('בחרו יעד, ובמסך המסלול: "הצעה להצטרף לנסיעה"', 3600); };
+  $('#rsBack').onclick = goBack; $('#rcJoin').onclick = rideJoinOpen; $('#rcHop').onclick = hopOpen; $('#rcOffer').onclick = () => { enterHome(); openSearch(); toast('בחרו יעד, ובמסך המסלול: "הצעה להצטרף לנסיעה"', 3600); };
   $$('#sRides [data-jr]').forEach(b => b.onclick = () => { const P = L[+b.dataset.jr].P; RIDE.P = P; RIDE.me = null; RIDE.res = null; ridePaxOpen(); });
   show('rides');
 }
@@ -5409,32 +5438,27 @@ function rideVerdict(R, altMin) {
 function ridePaxRender() {
   const m = $('#modal'); if (!m.querySelector('#rideCard')) return;
   const P = RIDE.P, R = RIDE.res; let out = '';
+  HOP.rerender = ridePaxRender; HOP.reopen = ridePaxOpen; HOP.me = RIDE.me;
   if (RIDE.busy) out = '<div class="hopnote">מחשבים איפה כדאי לרדת…</div>';
   else if (R && R.err) out = `<div class="hopnote bad">${esc(R.err)}</div>`;
   else if (R) {
-    const V = rideVerdict(R, +RIDE.alt), c = R.picks[RIDE.pick] || R.picks[0];
-    out = `<div class="hopv ${V.kind}"><b>${V.t}</b><span>${V.s}</span></div>`;
-    if (c) out += `${R.picks.map((p, i) => `<button class="hopc press${i === RIDE.pick ? ' best' : ''}" data-rp="${i}"><div class="hoptop"><b>רדו ב${esc(p.street)}</b><span class="hopbadge">${i === 0 ? 'הכי משתלם' : 'חלופה'}</span></div><div class="hopm"><div><small>יורדים בעוד</small><b>${fmtMin(p.tDrop)}</b></div><div><small>הליכה</small><b>${fmtMin(p.walk)}</b></div><div><small>מגיעים</small><b>${hopClock(p.arr)}</b></div></div></button>`).join('')}
-      <button class="mubtn press" id="rideAsk" style="background:var(--accent);color:#fff">בקשה מ${esc(P.n)} לעצור ב${esc(c.street)}</button>`;
-    out += '<div class="hopnote">הזמנים הם הערכה לפי המפה, בלי עומסי תנועה. ההליכה מחושבת לפי הרחובות.</div>';
+    HOP.res = R; out = hopOutHTML(R); const c = hopPicks(R)[HOP.sel] || hopPicks(R)[0];
+    if (c) out += `<button class="mubtn press" id="rideAsk" style="background:var(--accent);color:#fff">בקשה מ${esc(P.n)} לעצור ב${esc(c.street)}</button>`;
   }
   $('#rideOut').innerHTML = out;
   $('#ridePick span').textContent = RIDE.me ? RIDE.me.label : 'בחירת יעד';
   $('#rideGo').disabled = !RIDE.me || RIDE.busy; $('#rideGo').textContent = RIDE.busy ? 'מחשבים…' : 'איפה לרדת?';
-  $$('#rideOut [data-rp]').forEach(b => b.onclick = () => { RIDE.pick = +b.dataset.rp; ridePaxRender(); });
-  if ($('#rideAsk')) $('#rideAsk').onclick = rideAsk;
+  hopBindOut('#rideOut'); if ($('#rideAsk')) $('#rideAsk').onclick = rideAsk;
 }
 function ridePaxOpen() {
   const P = RIDE.P, m = $('#modal');
   m.innerHTML = `<div class="mcard glass strong" id="rideCard" role="dialog" aria-modal="true" aria-labelledby="rideT"><div class="row"><div class="grow"><div class="ptitle" id="rideT">הצטרפות לנסיעה</div><div class="psub">${esc(P.n)} נוסע/ת ל${esc(P.dl)}. איפה כדאי לכם לרדת?</div></div><button class="circ press" id="rideX" style="background:var(--fill)" aria-label="סגירה">${ICON.x}</button></div>
     <button class="hopfield press" id="ridePick"><small>לאן אתם צריכים להגיע</small><span></span></button>
-    <label class="hopfield" style="cursor:text"><small>בדרך אחרת (למשל תחבורה ציבורית), כמה דקות זה לוקח? (לא חובה)</small><input id="rideAlt" class="ridein" type="number" inputmode="numeric" min="1" max="300" placeholder="למשל 54" value="${esc(String(RIDE.alt))}"></label>
     <button class="mubtn press" id="rideGo" style="background:var(--accent);color:#fff">איפה לרדת?</button><div id="rideOut"></div></div>`;
   m.hidden = false; $('#rideX').onclick = () => m.hidden = true; m.onclick = e => { if (e.target === m) m.hidden = true; };
-  $('#rideAlt').oninput = e => { RIDE.alt = e.target.value; if (RIDE.res && !RIDE.busy) ridePaxRender(); };
   $('#ridePick').onclick = () => { m.hidden = true; S.pickFor = 'ridepax'; openSearch(); toast('חפשו לאן אתם צריכים להגיע', 2600); };
   $('#rideGo').onclick = async () => {
-    if (!RIDE.me || RIDE.busy) return; RIDE.busy = true; RIDE.res = null; RIDE.pick = 0; ridePaxRender();
+    if (!RIDE.me || RIDE.busy) return; RIDE.busy = true; RIDE.res = null; HOP.mode = 'walk'; HOP.sel = 0; ridePaxRender();
     try { RIDE.res = await rideCompute(); } catch (e) { console.error(e); RIDE.res = { err: 'משהו השתבש בחישוב. נסו שוב' }; }
     RIDE.busy = false; ridePaxRender();
   };
@@ -5450,7 +5474,7 @@ async function rideCompute() {
   return hopEval(r, me);
 }
 async function rideAsk() {
-  const R = RIDE.res, c = R && (R.picks[RIDE.pick] || R.picks[0]); if (!c) return;
+  const R = RIDE.res, c = R && (hopPicks(R)[HOP.sel] || hopPicks(R)[0]); if (!c) return;
   const Q = { v: 1, k: 'req', n: myName(), P: RIDE.P, at: rLL(c.x, c.y), al: c.street, w: Math.round(c.walk / 60), td: Math.round(c.tDrop / 60), ml: RIDE.me.label };
   await rideSend(`${Q.n} מבקש/ת לרדת ב${c.street} (הליכה של כ-${Q.w} דק׳ ל${Q.ml}). אישור והוספת עצירה למסלול:`, `${SHARE_SITE}?req=${b64e(Q)}`);
 }
@@ -5603,6 +5627,7 @@ function trcPlan(D, o, d, t0) { // o, d: [x, y] metres. returns journeys sorted 
 /* ================= TRANSIT: buses, trains and light rail, door to door =================
    The planner behind "תחבורה ציבורית". Official timetable (Ministry of Transport GTFS, Gush Dan), computed on the phone.
    It is the planned timetable, not live positions: real-time needs the SIRI feed, which needs a registered key. */
+const TRL = { o: null, d: null };
 const TR = { data: null, key: '', busy: false, o: null, d: null, res: null, sel: 0, time: null, on: false, grp: null };
 const trDayKey = () => { const w = new Date().getDay(); return w === 5 ? 'fri' : w === 6 ? 'sat' : 'sun'; };
 const trNow = () => { const n = new Date(); return n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds(); };
@@ -5668,22 +5693,26 @@ async function trSearch() {
 /* ---------- map view ---------- */
 function trOverlayClear() { if (TR.grp) { scene.remove(TR.grp); TR.grp.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); TR.grp = null; } clearMarkers(m => m.userData.temp); }
 function trStepsHTML(J) {
-  const D = TR.data, nm = i => esc(i < 0 ? trPlace('o').label : i === -2 ? trPlace('d').label : D.stops[i][2]);
+  const D = TR.data, nm = i => esc(i === -1 ? (TRL.o || trPlace('o').label) : i === -2 ? (TRL.d || trPlace('d').label) : D.stops[i][2]);
   return J.legs.filter(l => l.t === 'ride' || l.sec >= 45).map(l => {
-    if (l.t === 'walk') return `<li><i class="trdot walk"></i><span><b>הליכה ${trMin(l.sec)} דק׳</b><small>${l.from === -1 ? 'אל ' + nm(l.to) : l.to === -2 ? 'אל ' + esc(trPlace('d').label) : 'מעבר ל' + nm(l.to)}</small></span></li>`;
+    if (l.t === 'walk') return `<li><i class="trdot walk"></i><span><b>הליכה ${trMin(l.sec)} דק׳</b><small>${l.from === -1 ? 'אל ' + nm(l.to) : l.to === -2 ? 'אל ' + nm(-2) : 'מעבר ל' + nm(l.to)}</small></span></li>`;
     const P = D.pats[l.p], L = D.lines[P[0]], c = TRCOL[L[1]] || TRCOL[3];
     return `<li><i class="trdot" style="background:${c}"></i><span><b>${TRNAME[L[1]] || 'קו'} <em class="trb" style="background:${c}">${esc(L[0])}</em> ${L[3] ? 'לכיוון ' + esc(L[3]) : ''}</b><small>עלייה ב${nm(l.from)} ב-${trClock(l.dep)} · ${l.a - l.b} תחנות · ירידה ב${nm(l.to)} ב-${trClock(l.arr)}</small></span></li>`;
   }).join('');
 }
+function trAddLegs(grp, J, oXY, dXY, xs, ys) {
+  const D = TR.data, P = i => i === -1 ? oXY : i === -2 ? dXY : [D.X[i], D.Y[i]];
+  for (const l of J.legs) {
+    if (l.t === 'walk') { grp.add(hopStrip([P(l.from), P(l.to)], 0x2fd6a6, 9)); continue; }
+    const PT = D.pats[l.p], L = D.lines[PT[0]], pts = []; for (let k = l.b; k <= l.a; k++) { const s = PT[1][k]; pts.push([D.X[s], D.Y[s]]); xs.push(D.X[s]); ys.push(D.Y[s]); }
+    grp.add(hopStrip(pts, parseInt((TRCOL[L[1]] || TRCOL[3]).slice(1), 16), 14));
+    for (const s of [l.from, l.to]) addMarker('dest', D.X[s], D.Y[s], { temp: true }, false);
+  }
+}
 function trMapDraw(fit) {
   trOverlayClear(); const J = TR.res.J[TR.sel], D = TR.data, o = trPlace('o'), d = trPlace('d'), xs = [o.x, d.x], ys = [o.y, d.y]; TR.grp = new THREE.Group();
   const P = (i) => i === -1 ? [o.x, o.y] : i === -2 ? [d.x, d.y] : [D.X[i], D.Y[i]];
-  for (const l of J.legs) {
-    if (l.t === 'walk') { TR.grp.add(hopStrip([P(l.from), P(l.to)], 0x2fd6a6, 9)); continue; }
-    const PT = D.pats[l.p], L = D.lines[PT[0]], pts = []; for (let k = l.b; k <= l.a; k++) { const s = PT[1][k]; pts.push([D.X[s], D.Y[s]]); xs.push(D.X[s]); ys.push(D.Y[s]); }
-    TR.grp.add(hopStrip(pts, parseInt((TRCOL[L[1]] || TRCOL[3]).slice(1), 16), 14));
-    for (const s of [l.from, l.to]) { const sp = addMarker('dest', D.X[s], D.Y[s], { temp: true }, false); }
-  }
+  trAddLegs(TR.grp, J, [o.x, o.y], [d.x, d.y], xs, ys);
   addMarker('dest', d.x, d.y, { temp: true }, true); if (!o.me) addMarker('home', o.x, o.y, { temp: true }, true);
   scene.add(TR.grp); if (fit) setTimeout(() => fitBounds(xs, ys, 1.3, 0.55), 150);
 }
