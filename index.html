@@ -2214,12 +2214,13 @@ function* streetKeys() { const seen = new Set(); for (const k of SIDX.keys()) { 
 const CAT_WORDS = { fuel: ['דלק', 'תחנת דלק', 'תדלוק', 'בנזין', 'סולר'], ev: ['טעינה', 'עמדת טעינה', 'חשמל', 'רכב חשמלי'], parking: ['חניה', 'חניון', 'חנייה'], cafe: ['קפה', 'בית קפה'], food: ['אוכל', 'מסעדה', 'מסעדות', 'פיצה', 'המבורגר', 'שווארמה', 'פלאפל', 'סושי'], shop: ['מכולת', 'סופר', 'סופרמרקט', 'מאפייה', 'קיוסק', 'חנות נוחות'], park: ['פארק', 'גינה', 'פארקים'], pharmacy: ['בית מרקחת', 'פארם'], hotel: ['מלון', 'מלונות', 'לינה'], mall: ['קניון', 'קניונים'], culture: ['מוזיאון', 'תצפית', 'קולנוע', 'תיאטרון', 'ספרייה'], health: ['בית חולים', 'מרפאה', 'קופת חולים'], atm: ['כספומט', 'בנק'], sport: ['חדר כושר', 'ספורט', 'בריכה'], wc: ['שירותים'], bar: ['בר', 'פאב'], worship: ['בית כנסת', 'בתי כנסת'], school: ['בית ספר', 'גן ילדים'], carwash: ['שטיפת רכב', 'שטיפה'], public: ['דואר', 'משטרה'] };
 function parseQuery(raw, noCp) {
   let q = norm(raw), city = null, best = null;
+  q = q.replace(/^(מושב|קיבוץ|ישוב|יישוב|מושבה)\s+(?=\S)/, ''); // "מושב נס הרים": the word only says what kind of place it is
   for (const [cn, c] of CITY_N) { if (cn.length < 2 || q === cn) continue; const re = new RegExp('(^|\\s)' + cn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\s|$)'); const m = re.exec(q); if (!m) continue; const end = m.index + m[0].length; if (!best || end > best.end || (end === best.end && cn.length > best.cn.length)) best = { c, re, end, cn }; }
   // the city is the one written last ("ירושלים 42 בני ברק": a street named like a city); never strip the whole query down to nothing
   if (best) { const rest = q.replace(best.re, ' ').replace(/\s+/g, ' ').trim(); if (rest && (!/^\d+[א-ת]?$/.test(rest) || [...rest.split(' ')].length <= 2 && (SIDX.has(rest.split(' ')[0] + '|' + best.c) || STREETS.has(rest.split(' ')[0] + '|' + best.c)))) { city = best.c; q = rest; } }
   q = q.replace(/(^|\s)(בניין|בנין|מספר|מס)(\s|$)/g, ' ').replace(/\s+/g, ' ').trim(); // "רחוב 601, בניין 22"
   let cp = null; // a city still being typed ("מבוא הגפן צור"): drop it from the street part, and prefer streets in a city that starts with it
-  if (!city && !noCp) { const t = q.split(' ').filter(Boolean); for (let n = Math.min(2, t.length - 1); n >= 1; n--) { const tail = t.slice(-n).join(' '); if (tail.length >= 2 && !/^\d/.test(tail) && CITY_N.some(([cn]) => cn.startsWith(tail) && cn !== tail)) { cp = tail; q = t.slice(0, -n).join(' '); break; } } }
+  if (!city && !noCp && !CITY_N.some(([cn]) => cn.startsWith(q)) && !PLACES.some(e => e.n.startsWith(q))) { const t = q.split(' ').filter(Boolean); for (let n = Math.min(2, t.length - 1); n >= 1; n--) { const tail = t.slice(-n).join(' '); if (tail.length >= 2 && !/^\d/.test(tail) && CITY_N.some(([cn]) => cn.startsWith(tail) && cn !== tail)) { cp = tail; q = t.slice(0, -n).join(' '); break; } } }
   const toks = q.split(' ').filter(Boolean);
   if (toks.length && toks.every(t => /^\d+$/.test(t)) && toks.length <= 2) { // streets that are numbers ("601"): first number is the street, second the building
     return { q: toks[0], city, num: toks[1] || null, cp };
@@ -2232,7 +2233,7 @@ function searchAll(raw, noCp) {
   { const r = searchAll0(raw, noCp); if (!noCp && parseQuery(raw).cp && !r.some(e => ['street', 'addr', 'poi', 'city'].includes(e.kind))) return searchAll0(raw, true); return r; }
 }
 function searchAll0(raw, noCp) {
-  const { q, city, num, cp } = parseQuery(raw, noCp), full = norm(raw);
+  const { q, city, num, cp } = parseQuery(raw, noCp), full = norm(raw).replace(/^(מושב|קיבוץ|ישוב|יישוב|מושבה)\s+(?=\S)/, '');
   const out = [], seen = new Set();
   const add = (e, score) => { const k = e.kind + '|' + e.label + '|' + Math.round(e.x / 30) + Math.round(e.y / 30); if (seen.has(k)) return; seen.add(k); out.push(Object.assign({}, e, { score })); };
   const recent = Store.data.recent || [];
@@ -4613,7 +4614,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793793852';
+const APP_VERSION = '1793794119';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5351,7 +5352,7 @@ if (location.hash === '#hopdebug') window.__HOPAPI = {
 /* research hook (only with #srchdebug): runs a query through the real search, then resolves it the same way a tap would */
 if (location.hash === '#srchdebug') window.__SRCH = {
   async run(q) {
-    const res = searchAll(q); const top = res.slice(0, 5).map(p => ({ k: p.kind, l: p.label, s: p.sub, x: p.x, y: p.y, ap: !!p.approx, need: !!p.need }));
+    const res = searchAll(q); const top = res.slice(0, 14).map(p => ({ k: p.kind, l: p.label, s: p.sub, x: p.x, y: p.y, ap: !!p.approx, need: !!p.need }));
     let p = res[0]; if (!p) return { n: 0, top };
     p = Object.assign({}, p);
     if (p.x != null && (p.need || p.remote || p.kind === 'city' || !TILES.has(tkey(p.x, p.y)))) {
@@ -5361,6 +5362,7 @@ if (location.hash === '#srchdebug') window.__SRCH = {
     return { n: res.length, top, x: p.x, y: p.y, k: p.kind, l: p.label, ap: !!p.approx };
   }
 };
+if (location.hash === '#srchdebug') window.__PQ = raw => parseQuery(raw);
 
 /* ================= SHARED RIDE: "שיתוף נסיעה" =================
    The driver shares the trip as a link. The passenger opens it, says where they need to get to and (if they like) how long
