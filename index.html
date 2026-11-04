@@ -484,6 +484,26 @@ input{font:inherit;color:inherit}
 @media (prefers-reduced-motion: reduce){#loading *,#loading *::after{animation-duration:.01s!important;animation-delay:0s!important}}
 .osm{position:absolute;top:calc(var(--top) + 52px);right:18px;font-size:11px;color:var(--mute);z-index:6;white-space:nowrap;opacity:.85;padding:4px 2px}
 .overlay{position:absolute;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;padding:12px 10px calc(var(--bot) + 6px);background:rgba(8,10,14,.42)}
+
+/* ask nativ: spoken conversation */
+#askCard{align-items:stretch;text-align:right;max-height:calc(100dvh - 28px);overflow-y:auto}
+.askorb{align-self:center;flex:none;width:84px;height:84px;border-radius:50%;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 12px 36px rgba(16,168,122,.38),inset 0 1px 0 rgba(255,255,255,.4);transition:transform .2s}
+.askorb i{display:grid;place-items:center;font-style:normal}.askorb svg{width:38px;height:38px}
+#askCard[data-st=listen] .askorb{animation:askpulse 1.1s ease-in-out infinite}
+#askCard[data-st=think] .askorb{animation:askspin 1.4s linear infinite;filter:saturate(.7)}
+#askCard[data-st=talk] .askorb{animation:askpulse 1.8s ease-in-out infinite}
+@keyframes askpulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(16,168,122,.45),0 12px 36px rgba(16,168,122,.38)}50%{transform:scale(1.06);box-shadow:0 0 0 22px rgba(16,168,122,0),0 12px 36px rgba(16,168,122,.38)}}
+@keyframes askspin{to{transform:rotate(360deg)}}
+.asklbl{text-align:center;font-weight:700;font-size:16px;color:var(--ink);min-height:22px}
+.askheard{text-align:center;font-size:17px;color:var(--ink2);min-height:24px;padding:0 8px}
+.askans{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:24px;background:color-mix(in srgb,var(--accent) 10%,var(--fill));text-align:right}
+.askans>b{font-size:34px;font-weight:800;line-height:1.1;color:var(--ink)}.askans>span{font-size:15px;color:var(--ink2)}.askans>small{font-size:13px;color:var(--ink2)}
+.askans.bad{background:color-mix(in srgb,var(--warn) 14%,var(--fill));font-size:15px;line-height:1.55;color:var(--ink)}
+.askl{display:flex;flex-direction:column;gap:2px}.askl .li{display:flex;align-items:center;gap:10px;padding:10px 4px;text-align:right;width:100%}.askl .li .grow{flex:1;min-width:0;display:flex;flex-direction:column}.askl .li b{font-size:16px}.askl .li small{font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.askl .li em{font-style:normal;font-weight:700;font-size:14px;color:var(--accent)}
+.askacts{display:flex;gap:8px}.askbtn{flex:1;height:48px;border-radius:16px;font-weight:700;font-size:16px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2))}.askbtn.ghost{background:var(--fill);color:var(--accent)}
+.asksug{display:flex;gap:8px;overflow-x:auto;padding:2px 0}.asksug .pill{white-space:nowrap;flex:none}
+.askform{display:flex;gap:8px}.askform input{flex:1;min-width:0;height:48px;border-radius:16px;padding:0 14px;background:var(--fill);font-size:16px;color:var(--ink)}.askform .askbtn{flex:none;padding:0 18px}
+#askBtn{background:color-mix(in srgb,var(--accent2) 18%,var(--fill))}#homeBottom #sOpen #askBtn{width:56px!important;height:56px!important}#homeBottom #sOpen #askBtn svg{width:26px;height:26px}
 .mcard{border-radius:32px;padding:20px 18px 14px;display:flex;flex-direction:column;gap:12px;width:100%;overflow:auto}
 .safe{margin:0;padding:0 18px 0 0;display:flex;flex-direction:column;gap:8px;font-size:15px;line-height:1.5;color:var(--ink2)}
 .steps{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column}
@@ -2910,7 +2930,7 @@ function updateHUD() {
    This layer does not guess. Every typed word must match the START of some word of the candidate: its own name first, then its
    city. Order does not matter, nothing is filtered by a guess, and the score says how much of the name you covered. It runs next
    to the old search and only ever adds or lifts results, so nothing that worked before is lost. */
-const TK = { sig: '', ents: [], dict: [] };
+const TK = { sig: '', ents: [], dict: [], cityFull: new Set() };
 const TK_IGN = new Set(['מושב', 'קיבוץ', 'ישוב', 'יישוב', 'מושבה', 'רחוב', 'שכונת', 'עיר', 'מועצה', 'אזורית', 'מקומית']);
 const tkWords = s => norm(s || '').split(' ').filter(Boolean);
 function tkBuild() {
@@ -2920,13 +2940,13 @@ function tkBuild() {
   for (const e of PLACES) push('city', e.label, (e.sub.split(' · ')[1] || (e.sub.startsWith('עיר') ? '' : '')), e, e.w);
   for (const k of keys) { const i = k.indexOf('|'), name0 = k.slice(0, i), c = k.slice(i + 1); push('street', /^\d+$/.test(name0) ? 'רחוב ' + name0 : name0, c, k, 0); }
   for (const e of IDX) if (e.kind === 'poi') push('poi', e.label || e.name || e.n, e.city, e, e.w);
+  TK.cityFull = new Set(); for (const [cn] of CITY_N) TK.cityFull.add(cn); for (const e of PLACES) if (/^עיר|^יישוב|^ישוב/.test(e.sub || '')) TK.cityFull.add(e.n);
   TK.ents = ents; TK.dict = [...m.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
 }
 function tkLower(t) { let lo = 0, hi = TK.dict.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (TK.dict[mid][0] < t) lo = mid + 1; else hi = mid; } return lo; }
-function tkSearch(raw) {
-  let toks = tkWords(raw).filter(t => !/^\d+[א-ת]?$/.test(t)); if (!toks.length) return [];
+function tkRun(toks, ctx) {
+  if (!toks.length) return [];
   if (toks.length > 1) { let f = toks.filter(t => !TK_IGN.has(t)); if (f.length) toks = f; }
-  tkBuild();
   let anchor = toks[0]; for (const t of toks) if (t.length > anchor.length) anchor = t; if (anchor.length < 2) return [];
   const ids = new Set(); for (let i = tkLower(anchor); i < TK.dict.length && TK.dict[i][0].startsWith(anchor); i++) { for (const id of TK.dict[i][1]) ids.add(id); if (ids.size > 9000) break; }
   const out = [], full = toks.join(' ');
@@ -2941,8 +2961,8 @@ function tkSearch(raw) {
     }
     if (!ok || !nm) continue;
     const used = E.nt.length - un.filter(Boolean).length, all = used === E.nt.length;
-    let sc = 600 + 60 * nm + 40 * cm + (all ? 120 : 0) + (ordered ? 30 : 0) + (all && E.nt.join(' ') === full ? 100 : 0) + (cm ? 40 : 0);
-    if (E.kind === 'city') sc += E.w * 25; else if (E.kind === 'poi') sc += E.w * 30 - Math.min(80, Math.hypot(E.ref.x - egoX, E.ref.y - egoY) / 60);
+    let sc = 600 + 60 * nm + 40 * cm + (all ? 120 : 0) + (ordered ? 30 : 0) + (all && E.nt.join(' ') === full ? 100 : 0) + (cm ? 40 : 0) + (ctx.length && ctx.every(t => E.ct.some(w => w.startsWith(t))) ? 80 : 0);
+    if (E.kind === 'city') sc += E.w * 25 + 250; // a place named like the query beats a street named like it else if (E.kind === 'poi') sc += E.w * 30 - Math.min(80, Math.hypot(E.ref.x - egoX, E.ref.y - egoY) / 60);
     out.push([sc, E]);
   }
   out.sort((a, b) => b[0] - a[0]);
@@ -2953,6 +2973,14 @@ function tkSearch(raw) {
     return { kind: 'street', key: k, label: E.label, sub: 'רחוב' + (E.city ? ' · ' + E.city : ''), x: pt[0], y: pt[1], grp: 't', score: sc };
   }).filter(Boolean);
 }
+function tkSearch(raw) {
+  let toks = tkWords(raw).filter(t => !/^\d+[א-ת]?$/.test(t)); if (!toks.length) return []; tkBuild();
+  let res = tkRun(toks, []);
+  for (let n = Math.min(3, toks.length - 1); n >= 1; n--) { // "גבעת זאב ירושלים": a big city named after the place is context, not part of its name
+    if (TK.cityFull.has(toks.slice(-n).join(' '))) { const r2 = tkRun(toks.slice(0, -n), toks.slice(-n)), kk = e => e.kind + e.label + Math.round(e.x / 30) + Math.round(e.y / 30), seen = new Map(res.map(e => [kk(e), e])); for (const e of r2) { const o = seen.get(kk(e)); if (!o) res.push(e); else if (e.score > o.score) o.score = e.score; } res.sort((a, b) => b.score - a.score); break; }
+  }
+  return res;
+}
 {
   const _sa = searchAll;
   searchAll = function (raw, noCp) {
@@ -2962,6 +2990,7 @@ function tkSearch(raw) {
     old.sort((a, b) => b.score - a.score); return old.slice(0, 40);
   };
 }
+if (location.hash === '#srchdebug') window.__TK = { TK, tkSearch, tkWords };
 
 /* ================= CAMERA ================= */
 const cam = { mode: 'orbit', f: { x: 0, y: 0 }, tf: { x: 0, y: 0 }, dist: 600, tdist: 600, yaw: -0.6, tyaw: -0.6, pitch: 0.95, tpitch: 0.95, yawOff: 0, zoom: 1 };
@@ -4688,7 +4717,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793804298';
+const APP_VERSION = '1793805690';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5826,6 +5855,166 @@ function trShowMap(i) { if (!TR.res || !TR.res.J.length) return; TR.sel = i || 0
     return _pick.apply(this, arguments);
   };
 }
+
+/* ================= ASK NATIV: a short spoken conversation =================
+   Press the speaker, say it the way you would say it to a person:
+     "כמה זמן מגבעת זאב ירושלים לכתובת שלי?"      "איזה עגלות קפה יש באזור נס הרים?"      "נווט לעבודה"
+   There is no language model inside the app (no server, no key), so the understanding is rules for the common Hebrew shapes of
+   these questions, with the real search and the real router underneath. What it does not understand it says, and falls back to search. */
+const ASK = { ctx: null, busy: false, rec: null, heard: '' };
+const ASK_SUG = ['כמה זמן מכאן לבית?', 'בתי קפה ליד הבית', 'איפה תחנת דלק קרובה', 'כמה זמן מהבית לעבודה בתחבורה ציבורית'];
+const ASK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16a1.5 1.5 0 011.5 1.5v8a1.5 1.5 0 01-1.5 1.5h-8L7 20.5v-4H4A1.5 1.5 0 012.5 15V7A1.5 1.5 0 014 5.5z"/><path d="M8 10v2M12 8.5v5M16 10v2"/></svg>';
+const askStem = w => w.length > 3 ? w.replace(/(ים|ות|ה|ת)$/, '') : w;
+const askKm = d => d < 950 ? Math.max(50, Math.round(d / 50) * 50) + ' מטר' : (d / 1000).toFixed(d < 10000 ? 1 : 0) + ' ק״מ';
+const askMin = s => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? m + ' דקות' : Math.floor(m / 60) + ' שעות' + (m % 60 ? ' ו-' + (m % 60) + ' דקות' : ''); };
+
+async function askResolve(txt) { // a spoken place → {x,y,label} (or {err})
+  const t = norm(cleanSpoken(txt)).replace(/^(את|ה)\s+(?=\S)/, '').replace(/\s+(שלי|שלנו)$/, ' שלי').trim();
+  if (/^(בית|בית שלי|כתובת שלי|כתובת הבית|הביתה|אליי|אלי|אצלי)$/.test(t)) { const h = Store.data.home; return h ? Object.assign({}, h, { label: 'הבית' }) : { err: 'עוד לא הגדרתם כתובת בית. אפשר להגדיר אותה בפרופיל' }; }
+  if (/^(עבודה|עבודה שלי|מקום עבודה)$/.test(t)) { const w = Store.data.work; return w ? Object.assign({}, w, { label: 'העבודה' }) : { err: 'עוד לא הגדרתם כתובת עבודה' }; }
+  if (/^(כאן|פה|מיקום שלי|המיקום שלי|ממני|אני|מכאן|לידי|מהמיקום שלי)$/.test(t)) return { x: egoX, y: egoY, label: 'המיקום שלכם', here: true };
+  const r = searchAll(txt).find(e => e.x != null && e.kind !== 'cat' && e.kind !== 'near' && e.kind !== 'home' && e.kind !== 'work'); if (!r) return { err: 'לא מצאתי את "' + txt + '"' };
+  const p = Object.assign({}, r);
+  if (p.need || !TILES.has(tkey(p.x, p.y))) { try { await ensureArea(p.x, p.y, 1500); } catch (e) { } if (p.need) { const a = findAddress(p.need.key, p.need.num); if (a) { p.x = a.x; p.y = a.y; } } }
+  if (p.kind === 'city') p.kind = 'pin';
+  return p;
+}
+function askScore(txt) { const t = norm(cleanSpoken(txt)); if (!t) return 0; if (/^(בית|בית שלי|כתובת שלי|הביתה|אלי|אליי|עבודה|עבודה שלי|כאן|פה|מיקום שלי|ממני|מכאן)$/.test(t.replace(/^ה/, ''))) return 900; const r = searchAll(txt).find(e => e.x != null && e.kind !== 'cat' && e.kind !== 'near'); return r ? r.score : 0; }
+
+function askParseTrip(rest) { // "מגבעת זאב ירושלים לכתובת שלי" → { from, to } (text), choosing the split that both sides can be found for
+  const w = rest.split(' ').filter(Boolean), cands = [];
+  const strip = (arr, pre) => { const a = arr.slice(); if (a.length && pre && a[0].length > 1 && a[0][0] === pre) a[0] = a[0].slice(1); else if (a.length && pre === 'אל' && a[0] === 'אל') a.shift(); return a.join(' '); };
+  if (w.length && /^(ל|אל$|עד$)/.test(w[0])) cands.push({ from: '', to: w[0] === 'אל' || w[0] === 'עד' ? w.slice(1).join(' ') : strip(w, 'ל') });
+  for (let i = 1; i < w.length; i++) if (/^(ל|אל$|עד$)/.test(w[i])) { const to = w[i] === 'אל' || w[i] === 'עד' ? w.slice(i + 1).join(' ') : strip(w.slice(i), 'ל'); if (!to) continue; const fr = w.slice(0, i); cands.push({ from: strip(fr, 'מ'), to }); if (fr[0] && fr[0][0] === 'מ') cands.push({ from: fr.join(' '), to }); }
+  if (!cands.length) return null;
+  let best = null, bs = -1; for (const c of cands) { const s = (c.from ? askScore(c.from) : 600) + askScore(c.to); if ((c.from ? askScore(c.from) : 1) > 0 && askScore(c.to) > 0 && s > bs) { bs = s; best = c; } }
+  return best;
+}
+async function askDrive(from, to) { // drive time between two arbitrary points, without disturbing the real position
+  await Promise.all([hopLoad(from, to)]);
+  const sv = { n: egoNode, h: egoH, x: egoX, y: egoY, d: egoDistNode }; let r = null;
+  try { if (!from.here && !placeEgoAt(from.x, from.y, true)) return { err: 'לא מצאתי כביש ליד נקודת המוצא' }; r = planRoute(to, [], 'fast'); }
+  finally { egoNode = sv.n; egoH = sv.h; egoX = sv.x; egoY = sv.y; egoDistNode = sv.d; }
+  if (!r) return { err: 'לא מצאתי מסלול לשם' };
+  let sec = r.TT[Math.floor(r.sStart || 0)] + (r.sigs ? r.sigs.length * 14 : 0), live = false;
+  if (typeof trafKey === 'function' && trafKey() && typeof trafficFor === 'function') { try { await Promise.race([trafficFor(r), new Promise(res => setTimeout(res, 7000))]); if (r.traffic) { sec += r.trafficDelay || 0; live = true; } } catch (e) { } }
+  return { sec, km: r.total / 1000, live, tolls: r.tolls && r.tolls.length ? tollNames(r) : '', r };
+}
+async function askTransit(from, to) {
+  const D = await trLoad(), t0 = trNow(), J = trcPlan(D, [from.x, from.y], [to.x, to.y], t0).sort((a, b) => a.arr - b.arr)[0];
+  if (!J) return { err: 'לא מצאתי תחבורה ציבורית ביניהם עכשיו' };
+  return { J, info: trJourneyInfo(J, t0), t0 };
+}
+const askLine = (a, b) => `${esc(a.label)} ← ${esc(b.label)}`;
+async function askTrip(fromTxt, toTxt, wantTransit) {
+  const [to, from] = await Promise.all([askResolve(toTxt), fromTxt ? askResolve(fromTxt) : Promise.resolve({ x: egoX, y: egoY, label: 'המיקום שלכם', here: true })]);
+  if (to.err) return { say: to.err, html: `<div class="askans bad">${esc(to.err)}</div>` };
+  if (from.err) return { say: from.err, html: `<div class="askans bad">${esc(from.err)}</div>` };
+  const z = typeof zoneAt === 'function' ? zoneAt(to.x, to.y) : ''; if (z === 'A' || z === 'G') { const m = 'היעד נמצא ב' + ZONE_HE[z] + '. הכניסה אליו אסורה לישראלים, אז אין מסלול'; return { say: m, html: `<div class="askans bad">${esc(m)}</div>` }; }
+  ASK.ctx = { from, to };
+  const act = [`<button class="askbtn press" data-go="1">פתיחת המסלול</button>`, `<button class="askbtn ghost press" data-tr="1">${wantTransit ? 'ברכב' : 'בתחבורה ציבורית'}</button>`];
+  if (wantTransit) {
+    const T = await askTransit(from, to); if (T.err) return { say: T.err, html: `<div class="askans bad">${esc(T.err)}</div>` };
+    const f = T.info, say = `מ${from.label} אל ${to.label} בתחבורה ציבורית: כ-${askMin(f.dur)}. ${f.wait < 120 ? 'יוצאים עכשיו' : 'יוצאים בעוד ' + askMin(f.wait)}, מגיעים ב-${trClock(f.arr)}${f.transfers ? ', עם ' + f.transfers + ' החלפות' : ', בלי החלפות'}.`;
+    TR.d = to; return { say, html: `<div class="askans"><small>${askLine(from, to)}</small><b>${askMin(f.dur)}</b><span>תחבורה ציבורית · מגיעים ב-${trClock(f.arr)} · ${f.transfers ? f.transfers + ' החלפות' : 'ישיר'}</span><div class="trlegs">${trLines(T.J)}</div><small>לפי לוח הזמנים, לא בזמן אמת</small></div><div class="askacts">${act.join('')}</div>`, ctx: 'tr' };
+  }
+  const R = await askDrive(from, to); if (R.err) return { say: R.err, html: `<div class="askans bad">${esc(R.err)}</div>` };
+  const say = `מ${from.label} אל ${to.label}: כ-${askMin(R.sec)} נסיעה, ${askKm(R.km * 1000)}. ${R.live ? 'כולל עומס תנועה עכשיו.' : 'לפי מהירויות הכביש, בלי עומס בזמן אמת.'}${R.tolls ? ' המסלול עובר ב' + R.tolls + '.' : ''}`;
+  return { say, html: `<div class="askans"><small>${askLine(from, to)}</small><b>${askMin(R.sec)}</b><span>${askKm(R.km * 1000)} · ${R.live ? 'כולל תנועה בזמן אמת' : 'בלי עומסי תנועה בזמן אמת'}</span>${R.tolls ? `<small>₪ ${esc(R.tolls)}</small>` : ''}</div><div class="askacts">${act.join('')}</div>` };
+}
+const ASK_STOP = new Set(['איזה', 'אילו', 'איפה', 'מה', 'יש', 'לי', 'את', 'כל', 'תמצא', 'תראה', 'חפש', 'בבקשה', 'קרוב', 'קרובה', 'קרובים', 'קרובות', 'כאן', 'פה', 'הכי']);
+async function askNear(whatTxt, whereTxt) {
+  const place = whereTxt ? await askResolve(whereTxt) : { x: egoX, y: egoY, label: 'המיקום שלכם', here: true };
+  if (place.err) return { say: place.err, html: `<div class="askans bad">${esc(place.err)}</div>` };
+  try { await ensureArea(place.x, place.y, 4000); } catch (e) { }
+  const words = norm(cleanSpoken(whatTxt)).split(' ').filter(w => w && !ASK_STOP.has(w)), stems = words.map(askStem);
+  const EXTRA = [[/אכול|לאכול|ארוחה|רעב/, 'food'], [/לשתות|שתייה|שתיה/, 'bar'], [/חניה|חנייה|לחנות/, 'parking'], [/תדלק|בנזין|דלק/, 'fuel']];
+  let g = nearGroupOf(words.join(' ')); if (!g) for (const [re, gg] of EXTRA) if (re.test(words.join(' '))) { g = gg; break; }
+  const cats = g ? (NEAR_GROUPS.find(o => o[0] === g) || NEAR_GROUPS[0])[2] : null; let items = [];
+  const seen = new Set(), push = (p, d) => { const k = p.label + Math.round(p.x / 25) + Math.round(p.y / 25); if (seen.has(k)) return; seen.add(k); items.push({ p, d }); };
+  const radii = place.kind === 'pin' || place.kind === 'city' ? [3000, 8000, 20000] : [1500, 4000, 10000, 25000];
+  const poi = e => e.kind === 'poi', dist = e => Math.hypot(e.x - place.x, e.y - place.y);
+  if (stems.length) for (const R of radii) { for (const e of IDX) { if (!poi(e)) continue; const d = dist(e); if (d > R) continue; const hay = norm(e.label + ' ' + (e.sub || '')); if (stems.every(s => hay.includes(s))) push(e, d); } if (items.length >= 3) break; }
+  if (items.length < 3 && cats && !/עגל/.test(words.join(' '))) for (const R of radii) { for (const e of IDX) { if (poi(e) && cats.includes(e.cat)) { const d = dist(e); if (d <= R) push(e, d); } } if (items.length >= 3) break; }
+  if (!items.length && g) for (const o of nearList(place, g)) push(placeFromPoi(o.p), o.d);
+  items.sort((a, b) => a.d - b.d); items = items.slice(0, 6);
+  const gHe = g ? (NEAR_GROUPS.find(o => o[0] === g) || [])[1] : '', what = (gHe && !items.some(o => stems.length && stems.every(s => norm(o.p.label + ' ' + (o.p.sub || '')).includes(s))) ? gHe : words.join(' ')) || 'מקומות';
+  if (!items.length) { const m = `לא מצאתי ${what} ${place.here ? 'לידכם' : 'ליד ' + place.label} במפה. ייתכן שאין על זה מידע במאגר.`; return { say: m, html: `<div class="askans bad">${esc(m)}</div>` }; }
+  ASK.ctx = { place, items };
+  const say = `${what} ${place.here ? 'לידכם' : 'ליד ' + place.label}: ${items.length === 1 ? 'מצאתי אחד' : 'מצאתי ' + items.length}. הקרוב ביותר: ${items[0].p.label}, במרחק ${askKm(items[0].d)}.${items[1] ? ' אחריו ' + items[1].p.label + '.' : ''}`;
+  return { say, html: `<div class="askans"><small>${esc(what)} ${place.here ? 'לידכם' : 'ליד ' + esc(place.label)}</small><div class="list askl">${items.map((o, i) => `<button class="li press" data-ai="${i}"><span class="ic">${mono(CATS[o.p.cat] ? CATS[o.p.cat].d : '')}</span><span class="grow"><b>${esc(o.p.label)}</b><small>${esc((o.p.sub || '').split(' · ').slice(0, 2).join(' · '))}</small></span><em>${askKm(o.d)}</em></button>`).join('')}</div></div><div class="askacts"><button class="askbtn press" data-map="1">הצגה על המפה</button></div>` };
+}
+function askShowMap() {
+  const c = ASK.ctx; if (!c || !c.items) return; $('#modal').hidden = true; clearMarkers(m => m.userData.temp); destMark.visible = false;
+  addMarker('dest', c.place.x, c.place.y, { temp: true, place: c.place }, true); for (const o of c.items) addMarker(o.p.cat || 'dest', o.p.x, o.p.y, { temp: true, poi: o.p });
+  fitBounds([c.place.x].concat(c.items.map(o => o.p.x)), [c.place.y].concat(c.items.map(o => o.p.y)), 1.3, 0.42); if (S.mode !== 'home') show('home');
+}
+async function askUnderstand(raw) {
+  let t = cleanSpoken(raw).replace(/^(נתיב|היי נתיב|תגיד לי|תגידי לי|אתה יכול|אפשר|בבקשה|תגיד)\s+/g, '').replace(/\s*בבקשה$/, '').trim(); if (!t) return null;
+  const transit = /(תחבורה ציבורית|תחב"צ|תחבצ|אוטובוס|רכבת|בקו)/.test(t), tt = t.replace(/(בתחבורה ציבורית|תחבורה ציבורית|בתחב"צ|בתחבצ|באוטובוס|ברכבת)/g, ' ').replace(/\s+/g, ' ').trim();
+  // follow-ups on the last answer
+  if (ASK.ctx && ASK.ctx.from && /^(ו?ב)?(תחבורה ציבורית|אוטובוס|רכבת)/.test(t)) return askTrip(ASK.ctx.from.here ? '' : ASK.ctx.from.label, ASK.ctx.to.label, true);
+  if (ASK.ctx && ASK.ctx.to && /^(קח אותי|נווט|תנווט|סע|ניווט)( אותי)?( לשם| אליו| אליה)?$/.test(t)) { openRoutePreview(ASK.ctx.to); $('#modal').hidden = true; return { say: 'פותח מסלול', html: '' }; }
+  let m = tt.match(/כמה (?:זמן|דקות)(?: זה| לוקח| ייקח| ילך| צריך| נסיעה| הנסיעה| ההגעה)*(?: להגיע| לנסוע| לקחת)?(?: עכשיו| כרגע| היום)?\s*(.*)$/);
+  if (!m) m = tt.match(/(?:מתי|באיזו שעה)(?: אני)? (?:אגיע|מגיע|נגיע)\s*(.*)$/);
+  if (m) { const rest = m[1].replace(/\s*(עכשיו|כרגע|בבקשה)\s*$/, '').trim(); if (rest) { const sp = askParseTrip(rest) || (rest === 'הביתה' ? { from: '', to: 'הביתה' } : null); if (sp) return askTrip(sp.from, sp.to, transit); } return { say: 'לאן רוצים להגיע? למשל: כמה זמן מכאן לנס הרים', html: `<div class="askans bad">לאן רוצים להגיע? למשל "כמה זמן מכאן לנס הרים"</div>` }; }
+  m = t.match(/^(?:נווט|תנווט|ניווט|קח אותי|תיקח אותי|סע|תסיע אותי|פתח מסלול)(?: אותי)?\s*(?:ל-?|אל |עד )(.+)$/);
+  if (m) { const p = await askResolve(m[1]); if (p.err) return { say: p.err, html: `<div class="askans bad">${esc(p.err)}</div>` }; $('#modal').hidden = true; openRoutePreview(p); return { say: 'פותח מסלול אל ' + p.label, html: '' }; }
+  m = t.match(/^(?:(?:איזה|אילו|איפה יש|איפה|מה יש|יש|תמצא לי|תראה לי|חפש לי|חפש|תן לי|בא לי)\s*)?(.+?)\s*(?:יש\s+)?(?:באזור|באיזור|ליד|בסביבת|בסביבה של|בקרבת|קרוב ל-?|סמוך ל-?)\s*(.+)$/);
+  if (m) return askNear(m[1], m[2]);
+  m = t.match(/^(?:איזה|אילו|איפה|מה יש|יש|תמצא לי|תראה לי|חפש לי|חפש|תן לי)\s*(.+?)(?:\s+(?:קרוב|קרובה|קרובים|קרובות|לידי|לידנו|באזור שלי|בסביבה|פה|כאן))?$/);
+  if (m) return askNear(m[1], '');
+  const r = searchAll(t).filter(e => e.x != null && e.kind !== 'cat')[0];
+  if (r) { const p = await askResolve(t); if (!p.err) { ASK.ctx = { to: p }; return { say: `מצאתי ${p.label}. לנווט לשם?`, html: `<div class="askans"><b>${esc(p.label)}</b><span>${esc(p.sub || '')}</span></div><div class="askacts"><button class="askbtn press" data-go="1">פתיחת המסלול</button></div>` }; } }
+  return { say: 'לא הבנתי. אפשר לשאול למשל: כמה זמן מהבית לעבודה, או בתי קפה ליד נס הרים.', html: `<div class="askans bad">לא הבנתי את השאלה. נסו למשל:<br>• "כמה זמן מגבעת זאב לבית?"<br>• "בתי קפה ליד נס הרים"<br>• "נווט לעבודה"</div>` };
+}
+function askSetState(st, txt) { const c = $('#askCard'); if (!c) return; c.dataset.st = st; const l = $('#askLbl'); if (l) l.textContent = txt || ({ idle: 'לחצו ודברו', listen: 'מקשיבים…', think: 'חושבים…', talk: 'עונים…' })[st]; }
+function askBind() {
+  $$('#askOut [data-go]').forEach(b => b.onclick = () => { const c = ASK.ctx; if (c && c.to) { $('#modal').hidden = true; openRoutePreview(c.to); } });
+  $$('#askOut [data-tr]').forEach(b => b.onclick = () => { const c = ASK.ctx; if (c && c.to) askRun('בתחבורה ציבורית', true, c.from.here ? '' : c.from.label, c.to.label, b.textContent.includes('ברכב') ? false : true); });
+  $$('#askOut [data-map]').forEach(b => b.onclick = askShowMap);
+  $$('#askOut [data-ai]').forEach(b => b.onclick = () => { const o = ASK.ctx.items[+b.dataset.ai]; $('#modal').hidden = true; pickResult(o.p); });
+}
+async function askRun(heard, direct, f, t2, tr) {
+  if (ASK.busy) return; ASK.busy = true; try { speechSynthesis.cancel(); } catch (e) { }
+  $('#askHeard').textContent = heard ? '״' + heard + '״' : ''; $('#askOut').innerHTML = ''; askSetState('think');
+  let a; try { a = direct && t2 ? await askTrip(f, t2, tr) : await askUnderstand(heard); } catch (e) { console.error(e); a = { say: 'משהו השתבש. נסו שוב', html: '<div class="askans bad">משהו השתבש. נסו שוב</div>' }; }
+  ASK.busy = false; if (!a) { askSetState('idle'); return; }
+  if (!$('#askCard')) return; $('#askOut').innerHTML = a.html || ''; askBind(); askSetState('talk', a.say && a.html ? 'עונים…' : '');
+  if (a.say) { if (typeof say === 'function') { say(a.say); } setTimeout(() => askSetState('idle'), Math.min(9000, 1500 + a.say.length * 55)); } else askSetState('idle');
+}
+function askListen() {
+  if (ASK.rec) { try { ASK.rec.stop(); } catch (e) { } return; }
+  try { speechSynthesis.cancel(); } catch (e) { }
+  if (!VSRC) { toast('הדפדפן הזה לא תומך בזיהוי דיבור. אפשר להקליד את השאלה', 4200); $('#askQ').focus(); return; }
+  let got = '', err = false;
+  try {
+    const r = new VSRC(); ASK.rec = r; r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 1; r.continuous = false;
+    r.onresult = ev => { const parts = []; for (let i = 0; i < ev.results.length; i++) parts.push(String(ev.results[i][0].transcript || '')); const lastP = parts[parts.length - 1].trim(); const t = parts.length > 1 && parts[0].trim() && lastP.startsWith(parts[0].trim()) ? lastP : parts.join(' '); got = cleanSpoken(t); $('#askHeard').textContent = '״' + got + '״'; };
+    r.onerror = e => { err = true; ASK.rec = null; askSetState('idle'); toast(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'אין גישה למיקרופון. אפשר לאשר בהגדרות או להקליד' : e.error === 'no-speech' ? 'לא שמענו כלום. נסו שוב' : 'הזיהוי לא זמין עכשיו. אפשר להקליד', 3600); };
+    r.onend = () => { ASK.rec = null; if (err) return; if (got) askRun(got); else { askSetState('idle'); toast('לא שמענו כלום. נסו שוב', 2200); } };
+    r.start(); askSetState('listen'); $('#askHeard').textContent = '';
+  } catch (e) { ASK.rec = null; askSetState('idle'); toast('הזיהוי לא זמין עכשיו. אפשר להקליד', 3200); }
+}
+function openAsk() {
+  const m = $('#modal'); ASK.ctx = null;
+  m.innerHTML = `<div class="mcard glass strong" id="askCard" data-st="idle" role="dialog" aria-modal="true" aria-labelledby="askT"><div class="row"><div class="grow"><div class="ptitle" id="askT">שאלו את נתיב</div><div class="psub">דברו בעברית, כמו לאדם</div></div><button class="x press" id="askX" aria-label="סגירה">✕</button></div>
+    <button class="askorb press" id="askOrb" aria-label="לחצו ודברו"><i>${MIC_SVG}</i></button><div class="asklbl" id="askLbl">לחצו ודברו</div><div class="askheard" id="askHeard"></div>
+    <div id="askOut"></div>
+    <div class="asksug hscroll">${ASK_SUG.map(s => `<button class="pill press" data-s="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+    <form class="askform" id="askForm"><input id="askQ" type="text" autocomplete="off" placeholder="או הקלידו שאלה" enterkeyhint="send"><button class="askbtn press" type="submit">שליחה</button></form></div>`;
+  m.hidden = false; const close = () => { try { speechSynthesis.cancel(); } catch (e) { } if (ASK.rec) { try { ASK.rec.stop(); } catch (e) { } } m.hidden = true; };
+  $('#askX').onclick = close; m.onclick = e => { if (e.target === m) close(); };
+  $('#askOrb').onclick = askListen;
+  $$('#askCard [data-s]').forEach(b => b.onclick = () => askRun(b.dataset.s));
+  $('#askForm').onsubmit = e => { e.preventDefault(); const v = $('#askQ').value.trim(); if (v) { $('#askQ').value = ''; $('#askQ').blur(); askRun(v); } };
+  if (VSRC) setTimeout(askListen, 350); // open and listen: one tap
+}
+{
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'askBtn'; b.className = 'vmic press'; b.setAttribute('aria-label', 'שיחה עם נתיב'); b.innerHTML = ASK_ICON;
+  const anchor = $('#sMic') || $('#sOpenBtn'); anchor.after(b); b.addEventListener('click', e => { e.stopPropagation(); openAsk(); });
+}
+if (location.hash === '#askdebug') window.__ASK = { parseTrip: askParseTrip, score: askScore, understand: askUnderstand, open: openAsk, run: askRun };
 
 /* ================= DRIVE HMI LOOK =================
    While driving the map turns into a calm instrument view: muted cool ground, slate roads with crisp white
