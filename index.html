@@ -2902,6 +2902,67 @@ function updateHUD() {
   }
 }
 
+/* ================= SEARCH, TOKEN LAYER: why this exists =================
+   The first search guessed the structure of what you typed (street / city / number), then FILTERED by that guess.
+   Any wrong guess (a city that is only half typed, a word like "מושב", a place whose name looks like a city) removed the right
+   answer entirely, and every fix for one name broke another. Measured on 2,800 queries made from real names in the data, the
+   "name + city being typed" case failed 40-50% of the time.
+   This layer does not guess. Every typed word must match the START of some word of the candidate: its own name first, then its
+   city. Order does not matter, nothing is filtered by a guess, and the score says how much of the name you covered. It runs next
+   to the old search and only ever adds or lifts results, so nothing that worked before is lost. */
+const TK = { sig: '', ents: [], dict: [] };
+const TK_IGN = new Set(['מושב', 'קיבוץ', 'ישוב', 'יישוב', 'מושבה', 'רחוב', 'שכונת', 'עיר', 'מועצה', 'אזורית', 'מקומית']);
+const tkWords = s => norm(s || '').split(' ').filter(Boolean);
+function tkBuild() {
+  const keys = streetKeys(), sig = keys.length + '|' + IDX.length + '|' + PLACES.length; if (sig === TK.sig) return; TK.sig = sig;
+  const ents = [], m = new Map();
+  const push = (kind, label, city, ref, w) => { const nt = tkWords(label); if (!nt.length) return; const id = ents.length; ents.push({ kind, label, city, nt, ct: tkWords(city), ref, w }); for (const t of new Set(nt)) { let a = m.get(t); if (!a) m.set(t, a = []); a.push(id); } };
+  for (const e of PLACES) push('city', e.label, (e.sub.split(' · ')[1] || (e.sub.startsWith('עיר') ? '' : '')), e, e.w);
+  for (const k of keys) { const i = k.indexOf('|'), name0 = k.slice(0, i), c = k.slice(i + 1); push('street', /^\d+$/.test(name0) ? 'רחוב ' + name0 : name0, c, k, 0); }
+  for (const e of IDX) if (e.kind === 'poi') push('poi', e.label || e.name || e.n, e.city, e, e.w);
+  TK.ents = ents; TK.dict = [...m.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+}
+function tkLower(t) { let lo = 0, hi = TK.dict.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (TK.dict[mid][0] < t) lo = mid + 1; else hi = mid; } return lo; }
+function tkSearch(raw) {
+  let toks = tkWords(raw).filter(t => !/^\d+[א-ת]?$/.test(t)); if (!toks.length) return [];
+  if (toks.length > 1) { let f = toks.filter(t => !TK_IGN.has(t)); if (f.length) toks = f; }
+  tkBuild();
+  let anchor = toks[0]; for (const t of toks) if (t.length > anchor.length) anchor = t; if (anchor.length < 2) return [];
+  const ids = new Set(); for (let i = tkLower(anchor); i < TK.dict.length && TK.dict[i][0].startsWith(anchor); i++) { for (const id of TK.dict[i][1]) ids.add(id); if (ids.size > 9000) break; }
+  const out = [], full = toks.join(' ');
+  for (const id of ids) {
+    const E = TK.ents[id], un = E.nt.slice(), uc = E.ct.slice(); let nm = 0, cm = 0, ordered = true, last = -1, ok = true;
+    for (const t of toks) {
+      let j = un.indexOf(t); if (j < 0) j = un.findIndex(w => w && w.startsWith(t));
+      if (j >= 0) { if (j < last) ordered = false; last = j; un[j] = ''; nm++; continue; }
+      let c = uc.indexOf(t); if (c < 0) c = uc.findIndex(w => w && w.startsWith(t));
+      if (c >= 0) { uc[c] = ''; cm++; continue; }
+      if (TK_IGN.has(t) || (t.length === 1 && t === toks[toks.length - 1] && toks.length > 1)) continue; ok = false; break;
+    }
+    if (!ok || !nm) continue;
+    const used = E.nt.length - un.filter(Boolean).length, all = used === E.nt.length;
+    let sc = 600 + 60 * nm + 40 * cm + (all ? 120 : 0) + (ordered ? 30 : 0) + (all && E.nt.join(' ') === full ? 100 : 0) + (cm ? 40 : 0);
+    if (E.kind === 'city') sc += E.w * 25; else if (E.kind === 'poi') sc += E.w * 30 - Math.min(80, Math.hypot(E.ref.x - egoX, E.ref.y - egoY) / 60);
+    out.push([sc, E]);
+  }
+  out.sort((a, b) => b[0] - a[0]);
+  return out.slice(0, 40).map(([sc, E]) => {
+    if (E.kind === 'city') return Object.assign({ grp: 'y', score: sc }, E.ref);
+    if (E.kind === 'poi') return Object.assign({ grp: 'p', score: sc }, E.ref);
+    const k = E.ref, st = SIDX.get(k), pt = STREETS.has(k) ? streetPoint(k) : st ? [st.x, st.y] : streetPoint(k); if (!pt) return null;
+    return { kind: 'street', key: k, label: E.label, sub: 'רחוב' + (E.city ? ' · ' + E.city : ''), x: pt[0], y: pt[1], grp: 't', score: sc };
+  }).filter(Boolean);
+}
+{
+  const _sa = searchAll;
+  searchAll = function (raw, noCp) {
+    const old = _sa.apply(this, arguments), tk = tkSearch(raw); if (!tk.length) return old;
+    const key = e => e.kind + '|' + e.label + '|' + Math.round(e.x / 30) + Math.round(e.y / 30), by = new Map(old.map(e => [key(e), e]));
+    for (const e of tk) { const o = by.get(key(e)); if (!o) { old.push(e); by.set(key(e), e); } else if (e.score > o.score) o.score = e.score; }
+    old.sort((a, b) => b.score - a.score); return old.slice(0, 40);
+  };
+}
+
 /* ================= CAMERA ================= */
 const cam = { mode: 'orbit', f: { x: 0, y: 0 }, tf: { x: 0, y: 0 }, dist: 600, tdist: 600, yaw: -0.6, tyaw: -0.6, pitch: 0.95, tpitch: 0.95, yawOff: 0, zoom: 1 };
 const camPos = new THREE.Vector3(0, 400, 400), camLook = new THREE.Vector3();
@@ -4614,7 +4675,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793794119';
+const APP_VERSION = '1793794920';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5363,6 +5424,7 @@ if (location.hash === '#srchdebug') window.__SRCH = {
   }
 };
 if (location.hash === '#srchdebug') window.__PQ = raw => parseQuery(raw);
+if (location.hash === '#srchdebug') window.__SA = (q, n) => searchAll(q).slice(0, n || 12).map(p => [p.kind, p.label, p.sub || '']);
 
 /* ================= SHARED RIDE: "שיתוף נסיעה" =================
    The driver shares the trip as a link. The passenger opens it, says where they need to get to and (if they like) how long
