@@ -2974,7 +2974,9 @@ function tkRun(toks, ctx) {
     return { kind: 'street', key: k, label: E.label, sub: 'רחוב' + (E.city ? ' · ' + E.city : ''), x: pt[0], y: pt[1], grp: 't', score: sc };
   }).filter(Boolean);
 }
+const TK_ALIAS = [[/היכל\s+נוקיה|נוקיה\s+ארנה|היכל\s+הנוקיה|אולם\s+נוקיה/g, 'היכל מנורה מבטחים'], [/היכל\s+מנורה(?!\s+מבטחים)/g, 'היכל מנורה מבטחים'], [/סמי\s+עופר/g, 'אצטדיון סמי עופר'], [/בלומפילד/g, 'אצטדיון בלומפילד'], [/קניון\s+עזריאלי\s+תל\s*אביב/g, 'מרכז עזריאלי תל אביב']]; // old / colloquial names people still use
 function tkSearch(raw) {
+  for (const [re, to] of TK_ALIAS) raw = raw.replace(re, to);
   let toks = tkWords(raw).filter(t => !/^\d+[א-ת]?$/.test(t)); if (!toks.length) return []; tkBuild();
   let res = tkRun(toks, []);
   for (let n = Math.min(3, toks.length - 1); n >= 1; n--) { // "גבעת זאב ירושלים": a big city named after the place is context, not part of its name
@@ -4718,7 +4720,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793807127';
+const APP_VERSION = '1793816907';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
