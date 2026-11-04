@@ -2462,7 +2462,7 @@ function renderResults() {
     html += res.length ? `<div class="card glass strong"><div class="list">${res.map((r, i) => listItem(r, i)).join('')}</div></div>` : `<div class="empty">נסו "לח״י 22 בני ברק", "ביאליק רמת גן" או "קפה".</div>`;
   } else if (!res.length) html = `<div class="card glass strong"><div class="empty">לא מצאנו את זה. נסו שם רחוב ועיר, רחוב ומספר, או שם של מקום. אפשר גם לחפש למשל "ברים ליד ביאליק רמת גן".</div></div>`;
   else {
-    const order = ['n', 's', 'r', 'a', 'c', 'p', 't'], by = {}; res.forEach((r, i) => { (by[r.grp || 'p'] = by[r.grp || 'p'] || []).push([r, i]); });
+    const order = ['n', 's', 'r', 'y', 'a', 'c', 'p', 't'], by = {}; res.forEach((r, i) => { (by[r.grp || 'p'] = by[r.grp || 'p'] || []).push([r, i]); });
     for (const g of order) if (by[g]) html += `<div class="grp"><span class="eyebrow">${GRP[g]}</span><div class="card glass strong"><div class="list">${by[g].slice(0, g === 'a' ? 6 : 8).map(([r, i]) => listItem(r, i, qv)).join('')}</div></div></div>`;
   }
   $('#sResults').innerHTML = html;
@@ -4675,7 +4675,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793794920';
+const APP_VERSION = '1793795820';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
