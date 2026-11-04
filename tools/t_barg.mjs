@@ -1,0 +1,12 @@
+import pw from 'playwright-core'; const { chromium } = pw;
+const D='/tmp/claude-0/-home-claude/1b6ae73e-58cb-557a-a5ed-d3d6f4739dab/scratchpad/';
+const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
+const ctx = await b.newContext({viewport:{width:390,height:844},geolocation:{latitude:32.0835,longitude:34.8035},permissions:['geolocation']});
+await ctx.addInitScript(()=>{localStorage.setItem('nativ.v1',JSON.stringify({account:{name:'t',contact:'051',terms:1},prefs:{voice:false}}))});
+const p=await ctx.newPage(); p.on('pageerror',e=>console.log('ERR',e.message));
+await p.goto('http://localhost:8765/test4.html#srchdebug,hopdebug'); await p.waitForTimeout(9000);
+console.log(JSON.stringify(await p.evaluate(async()=>{ const S=window.__SRCH, A=window.__HOPAPI, o={};
+ const d=await S.run('צור הדסה'), m=await S.run('בר גיורא'); o.d=[d.l,d.k,Math.round(d.x),Math.round(d.y)]; o.m=[m.l,m.k,Math.round(m.x),Math.round(m.y)]; o.sep=Math.round(Math.hypot(d.x-m.x,d.y-m.y));
+ const t=performance.now(); const R=await A.hopCompute({x:d.x,y:d.y,label:'צור הדסה'},{x:m.x,y:m.y,label:'בר גיורא'}); o.t=Math.round(performance.now()-t); o.err=R.err; o.picks=(R.picks||[]).map(c=>({st:c.street,walkMin:Math.round(c.walk/60),arr:Math.round(c.arr/60),drop:Math.round(c.tDrop/60)})); o.stay=Math.round(R.stayArr/60); o.walkNow=Math.round(R.walkNowArr/60); o.M=R.r&&R.r.M;
+ o.blocked=A.blocked(m,4000); if(R.r){ let best=1e9; for(let j=0;j<R.r.M;j+=40){ const e=Math.hypot(R.r.DX[j]-m.x,R.r.DY[j]-m.y); if(e<best)best=e;} o.minDistToRoute=Math.round(best);}  return o; })));
+process.exit(0);

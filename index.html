@@ -2990,7 +2990,7 @@ function tkSearch(raw) {
     old.sort((a, b) => b.score - a.score); return old.slice(0, 40);
   };
 }
-if (location.hash === '#srchdebug') window.__TK = { TK, tkSearch, tkWords };
+if (location.hash.includes('srchdebug')) window.__TK = { TK, tkSearch, tkWords };
 
 /* ================= CAMERA ================= */
 const cam = { mode: 'orbit', f: { x: 0, y: 0 }, tf: { x: 0, y: 0 }, dist: 600, tdist: 600, yaw: -0.6, tyaw: -0.6, pitch: 0.95, tpitch: 0.95, yawOff: 0, zoom: 1 };
@@ -4717,7 +4717,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793805690';
+const APP_VERSION = '1793806550';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5197,8 +5197,8 @@ const HOP_VMAX = 19.5;           // m/s (70 km/h): never drop someone off on a f
 function hopWalkCost(e) {
   const w = WAYS[e.w];
   if (w.zone === 'A' || w.zone === 'G') return Infinity;
-  if (w.speedMs > HOP_VMAX || w.isLink) return Infinity;
-  let c = e.len / HOP_WALK; if (SIG.has(e.b) || SIG.has(e.a)) c += 12; // waiting at a crossing
+  if (w.speedMs > 27.8 || (w.isLink && w.speedMs > 14)) return Infinity; // motorways and fast ramps: never
+  let c = e.len / HOP_WALK; if (w.isLink) c *= 3; // a slow interchange ramp (the only link between a village and the main road): possible, but only when nothing else connects if (w.speedMs > HOP_VMAX) c *= 2.2; // a fast ordinary road (no sidewalk in the countryside): allowed only when there is no other way, at a heavy penalty if (SIG.has(e.b) || SIG.has(e.a)) c += 12; // waiting at a crossing
   return c;
 }
 function hopWalkField(src, max) {
@@ -5225,7 +5225,7 @@ async function hopLoad(a, b) { // make sure the streets between two points, and 
 
 function hopAuto(R) { if (R && !R.err && !R.picks.length) { HOP.mode = 'transit'; HOP.sel = 0; setTimeout(() => hopEnsureTransit(R), 0); } }
 async function hopCompute(drv, me) {
-  await Promise.all([hopLoad({ x: egoX, y: egoY }, drv), hopLoad(drv, me)]);
+  await Promise.all([hopLoad({ x: egoX, y: egoY }, drv), hopLoad(drv, me), ensureArea(me.x, me.y, HOP_MAXWALK * HOP_WALK * 1.1).catch(() => { })]); // everything the passenger could walk through
   const r = planRoute(drv, [], 'fast');
   if (!r) return { err: 'לא מצאנו מסלול לנהג ליעד הזה' };
   return hopEval(r, me);
@@ -5407,7 +5407,8 @@ function hopBarRender() {
   const R = HOP.res, P = hopPicks(R), me = R.me || hopPlace('me'), c = P[HOP.sel] || P[0], base = Math.min(R.stayArr, R.walkNowArr), save = base < Infinity ? base - c.arr : 0;
   bar.innerHTML = `<div class="hbtop"><div class="hbchips" role="group" aria-label="נקודות ירידה">${P.map((p, k) => `<button class="press" data-hs="${k}" aria-pressed="${k === HOP.sel}" aria-label="נקודה ${k + 1}">${k + 1}</button>`).join('')}</div><button class="circ press" id="hbBack" aria-label="חזרה לתוצאות" style="background:var(--fill)">✕</button></div>
     <b class="hbt">רדו ב${esc(c.street)}</b>${save >= 60 ? `<div class="hbs">חוסך ${fmtMin(save)} לעומת ${R.stayArr <= R.walkNowArr ? 'לנסוע עד הסוף' : 'ללכת מעכשיו'}</div>` : ''}
-    ${c.J ? `<div class="trlegs">${trLines(c.J)}</div>` : ''}${hopMetrics(c)}${c.J ? `<ol class="trsteps">${(TRL.o = 'נקודת הירידה', TRL.d = me.label, trStepsHTML(c.J))}</ol>` : ''}${hopModesHTML()}`;
+    ${c.J ? `<div class="trlegs">${trLines(c.J)}</div>` : ''}${hopMetrics(c)}${c.J ? `<ol class="trsteps">${(TRL.o = 'נקודת הירידה', TRL.d = me.label, trStepsHTML(c.J))}</ol>` : ''}${hopModesHTML()}<button class="mubtn press" id="hbOpen" style="background:var(--accent);color:#fff">המשך מנקודת הירידה בניווט ${HOP.mode === 'transit' ? 'תחבורה ציבורית' : HOP.mode === 'scoot' ? 'אופניים' : 'הליכה'}</button>`;
+  { const ob = $('#hbOpen'); if (ob) ob.onclick = () => { const [la, lo] = toLL(c.x, c.y), [la2, lo2] = toLL(me.x, me.y); window.open(`https://www.google.com/maps/dir/?api=1&origin=${la.toFixed(5)},${lo.toFixed(5)}&destination=${la2.toFixed(5)},${lo2.toFixed(5)}&travelmode=${{ walk: 'walking', scoot: 'bicycling', transit: 'transit' }[HOP.mode] || 'walking'}`, '_blank', 'noopener'); }; }
   $$('#hopBar [data-hs]').forEach(b => b.onclick = () => { HOP.sel = +b.dataset.hs; hopMapDraw(true); hopBarRender(); });
   $$('#hopBar [data-hm]').forEach(b => b.onclick = async () => { HOP.mode = b.dataset.hm; HOP.sel = 0; if (HOP.mode === 'transit' && !R.tr && !R.trBusy) { await hopEnsureTransit(R); } if (!hopPicks(R).length) { HOP.mode = 'walk'; toast('אין תחב״צ מהנקודות בדרך', 2600); } hopMapDraw(true); hopBarRender(); });
   $('#hbBack').onclick = () => hopMapExit(true);
@@ -5443,8 +5444,10 @@ function hopShowMap(i) {
 
 /* read-only research hook: only when the page is opened with #hopdebug. Exports the points along a driver route so the
    transit side can be evaluated offline against the national GTFS file. */
-if (location.hash === '#hopdebug') window.__HOPAPI = {
-  hopCompute, hopEnsureTransit, hopLoadX: (a, b) => hopLoad(a, b), plan: d => planRoute(d, [], 'fast'), evalX: (r, me) => hopEval(r, me),
+if (location.hash.includes('hopdebug')) window.__HOPAPI = {
+  reach(me) { const n = nearestNode(me.x, me.y, hopWalkable, 40), wf = hopWalkField(n, 7200); let c = 0, mx = 0, far = null, nearRoad = null; for (let i = 0; i < NN; i++) if (wf[i] < Infinity) { c++; if (wf[i] > mx) { mx = wf[i]; far = [Math.round(NX[i]), Math.round(NY[i])]; } } return { n, nd: Math.round(Math.hypot(NX[n] - me.x, NY[n] - me.y)), c, mx: Math.round(mx), far }; },
+  blocked(me, rad) { const n = nearestNode(me.x, me.y, hopWalkable, 40), wf = hopWalkField(n, 7200), out = new Map(); for (let ei = 0; ei < EDGES.length; ei++) { const e = EDGES[ei]; if (e.a >= NN || e.b >= NN) continue; const ra = wf[e.a] < Infinity, rb = wf[e.b] < Infinity; if (ra === rb) continue; const x = NX[e.a], y = NY[e.a]; if (Math.hypot(x - me.x, y - me.y) > rad) continue; const w = WAYS[e.w], k = (nameOf(w) || w.ref || '?') + '|' + Math.round(w.speedMs * 3.6) + '|' + (w.isLink ? 'link' : '') + (w.zone || '') + '|c' + (hopWalkCost(e) === Infinity ? 'INF' : 'ok'); out.set(k, (out.get(k) || 0) + 1); } return [...out.entries()]; },
+  hopCompute, hopEnsureTransit, hopWalkField: (n, m) => hopWalkField(n, m), nearestN: (x, y) => nearestNode(x, y, hopWalkable, 40), probe(R, me, rad) { const wf = hopWalkField(nearestNode(me.x, me.y, hopWalkable, 40), 3600), r = R.r, out = []; for (let j = 0; j < r.M; j += 40) { const dd = Math.hypot(r.DX[j] - me.x, r.DY[j] - me.y); if (dd > rad) continue; const e = EDGES[r.edgeSeq[r.SE[j]]], w = WAYS[e.w]; out.push([Math.round(dd), nameOf(w) || w.ref || '', Math.round(w.speedMs * 3.6), !!w.isLink, !!w.round, Math.round(Math.min(wf[e.a], wf[e.b]))]); } return out; }, hopLoadX: (a, b) => hopLoad(a, b), plan: d => planRoute(d, [], 'fast'), evalX: (r, me) => hopEval(r, me),
   xy: (lat, lon) => ({ x: (lon - LON0) * KX, y: (lat - LAT0) * KY }),
   async route(o, d) {
     await hopLoad(o, d); if (!placeEgoAt(o.x, o.y)) return null;
@@ -5456,7 +5459,7 @@ if (location.hash === '#hopdebug') window.__HOPAPI = {
 };
 
 /* research hook (only with #srchdebug): runs a query through the real search, then resolves it the same way a tap would */
-if (location.hash === '#srchdebug') window.__SRCH = {
+if (location.hash.includes('srchdebug')) window.__SRCH = {
   async run(q) {
     const res = searchAll(q); const top = res.slice(0, 14).map(p => ({ k: p.kind, l: p.label, s: p.sub, x: p.x, y: p.y, ap: !!p.approx, need: !!p.need }));
     let p = res[0]; if (!p) return { n: 0, top };
@@ -5468,8 +5471,8 @@ if (location.hash === '#srchdebug') window.__SRCH = {
     return { n: res.length, top, x: p.x, y: p.y, k: p.kind, l: p.label, ap: !!p.approx };
   }
 };
-if (location.hash === '#srchdebug') window.__PQ = raw => parseQuery(raw);
-if (location.hash === '#srchdebug') window.__SA = (q, n) => searchAll(q).slice(0, n || 12).map(p => [p.kind, p.label, p.sub || '']);
+if (location.hash.includes('srchdebug')) window.__PQ = raw => parseQuery(raw);
+if (location.hash.includes('srchdebug')) window.__SA = (q, n) => searchAll(q).slice(0, n || 12).map(p => [p.kind, p.label, p.sub || '']);
 
 /* ================= SHARED RIDE: "שיתוף נסיעה" =================
    The driver shares the trip as a link. The passenger opens it, says where they need to get to and (if they like) how long
