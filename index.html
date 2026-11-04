@@ -4675,7 +4675,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793795820';
+const APP_VERSION = '1793801206';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5175,13 +5175,15 @@ function hopWalkField(src, max) {
 }
 const hopWalkable = n => { if (!DEG[n]) return false; for (const list of [OUT[n], IN[n]]) for (const ei of list) if (hopWalkCost(EDGES[ei]) < Infinity) return true; return false; };
 
-async function hopLoad(a, b) { // make sure the streets between two points, and around the second, are loaded
-  const L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.min(14, Math.ceil(L / 3000));
-  for (let i = 0; i <= n; i++) { const t = n ? i / n : 0; try { await ensureArea(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 1500); } catch (e) { } }
+async function hopLoad(a, b) { // make sure the streets between two points, and around the second, are loaded (all tiles requested together, not one probe after another)
+  const L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.min(14, Math.ceil(L / 3000)), ks = new Set();
+  for (let i = 0; i <= n; i++) { const t = n ? i / n : 0; for (const k of tilesAround(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 1500)) ks.add(k); }
+  await Promise.all([...ks].map(k => loadTileData(k).catch(() => { })));
 }
 
+function hopAuto(R) { if (R && !R.err && !R.picks.length) { HOP.mode = 'transit'; HOP.sel = 0; setTimeout(() => hopEnsureTransit(R), 0); } }
 async function hopCompute(drv, me) {
-  await hopLoad({ x: egoX, y: egoY }, drv); await hopLoad(drv, me);
+  await Promise.all([hopLoad({ x: egoX, y: egoY }, drv), hopLoad(drv, me)]);
   const r = planRoute(drv, [], 'fast');
   if (!r) return { err: 'לא מצאנו מסלול לנהג ליעד הזה' };
   return hopEval(r, me);
@@ -5216,7 +5218,7 @@ const hopPlace = k => k === 'me' ? (HOP.me || Store.data.home) : HOP.drv;
 const hopClock = sec => fmtClock(sec);
 function hopVerdict(R) {
   const best = R.picks[0];
-  if (!best) return { kind: 'none', t: 'אין נקודה טובה', s: R.stayArr < Infinity ? 'אפשר להישאר ברכב עד הסוף, ומשם ללכת ברגל.' : 'היעד רחוק מדי מהמסלול כדי להגיע אליו ברגל. כשהתחבורה הציבורית תתחבר, נציע גם נקודות מעבר.' };
+  if (!best) return { kind: 'none', t: 'אין נקודה טובה', s: R.stayArr < Infinity ? 'אפשר להישאר ברכב עד הסוף, ומשם ללכת ברגל.' : 'היעד רחוק מדי מהמסלול כדי להגיע אליו ברגל או בקורקינט. בודקים אם אפשר להשלים בתחבורה ציבורית.' };
   const bestAll = Math.min(best.arr, R.stayArr, R.walkNowArr);
   if (R.walkNowArr <= best.arr - 60 && R.walkNowArr <= R.stayArr) return { kind: 'walk', t: 'עדיף ללכת ברגל', s: `אתם מגיעים ב-${hopClock(R.walkNowArr)}, לפני כל נקודת ירידה (${hopClock(best.arr)}).` };
   if (R.stayArr <= best.arr + 60) return { kind: 'stay', t: 'עדיף להישאר ברכב עד הסוף', s: `ההקפצה לא חוסכת כאן. מההגעה של הנהג ליעד שלו מגיעים ב-${hopClock(R.stayArr)}.` };
@@ -5263,7 +5265,7 @@ function hopOutHTML(R) {
   else if (HOP.mode === 'transit' && R.trErr) body = `<div class="hopnote bad">${esc(R.trErr)}</div>`;
   else if (HOP.mode === 'transit' && !P.length) body = '<div class="hopnote">לא מצאנו קו שמתאים מנקודות הירידה בדרך. נסו הליכה או קורקינט.</div>';
   else body = `${hopCompare(R, P)}${P.map((c, i) => hopCard(c, i)).join('')}${P.length ? '<button class="mubtn press hopmap" id="hopMap">הצגה על המפה</button>' : ''}`;
-  return `<div class="hopv ${HOP.mode === 'transit' && !P.length ? 'none' : V.kind}"><b>${HOP.mode === 'transit' && !P.length ? 'אין אפשרות תחב״צ' : V.t}</b><span>${HOP.mode === 'transit' && !P.length ? 'נסו הליכה או קורקינט.' : V.s}</span></div>${R.picks.length ? hopModesHTML() : ''}${body}
+  return `<div class="hopv ${HOP.mode === 'transit' && !P.length ? 'none' : V.kind}"><b>${HOP.mode === 'transit' && !P.length ? 'אין אפשרות תחב״צ' : V.t}</b><span>${HOP.mode === 'transit' && !P.length ? 'נסו הליכה או קורקינט.' : V.s}</span></div>${hopModesHTML()}${body}
     <div class="hopnote">הזמנים הם הערכה לפי המפה, בלי עומסי תנועה בזמן אמת. תחבורה ציבורית לפי לוח הזמנים הרשמי.${R.dark ? ' בשעות החשכה נותנים משקל גדול יותר להליכה קצרה.' : ''}</div>`;
 }
 function hopBindOut(root) {
@@ -5310,7 +5312,7 @@ function hopOpen() {
   $('#hopGo').onclick = async () => {
     const d = hopPlace('drv'), me = hopPlace('me'); if (!d || !me || HOP.busy) return;
     HOP.busy = true; HOP.res = null; hopRender();
-    try { HOP.res = await hopCompute(d, me); } catch (e) { console.error(e); HOP.res = { err: 'משהו השתבש בחישוב. נסו שוב' }; }
+    try { HOP.res = await hopCompute(d, me); hopAuto(HOP.res); } catch (e) { console.error(e); HOP.res = { err: 'משהו השתבש בחישוב. נסו שוב' }; }
     HOP.busy = false; hopRender();
   };
   hopRender();
@@ -5400,6 +5402,7 @@ function hopShowMap(i) {
 /* read-only research hook: only when the page is opened with #hopdebug. Exports the points along a driver route so the
    transit side can be evaluated offline against the national GTFS file. */
 if (location.hash === '#hopdebug') window.__HOPAPI = {
+  hopCompute, hopEnsureTransit, hopLoadX: (a, b) => hopLoad(a, b), plan: d => planRoute(d, [], 'fast'), evalX: (r, me) => hopEval(r, me),
   xy: (lat, lon) => ({ x: (lon - LON0) * KX, y: (lat - LAT0) * KY }),
   async route(o, d) {
     await hopLoad(o, d); if (!placeEgoAt(o.x, o.y)) return null;
@@ -5500,7 +5503,7 @@ function openRides() {
 /* ---------- passenger ---------- */
 function rideVerdict(R, altMin) {
   const best = R.picks[0], alt = altMin > 0 ? altMin * 60 : 0;
-  if (!best) return { kind: 'none', t: 'אין נקודה טובה בדרך', s: 'היעד שלכם רחוק מדי מהמסלול של הנהג כדי להגיע אליו ברגל.' };
+  if (!best) return { kind: 'none', t: 'אין נקודה טובה בדרך', s: 'היעד שלכם רחוק מדי מהמסלול של הנהג כדי להגיע אליו ברגל. בודקים תחבורה ציבורית.' };
   if (R.stayArr <= best.arr + 60) return { kind: 'stay', t: 'הכי טוב לנסוע עד הסוף', s: `הנהג מגיע ליעד שלו, ומשם ההליכה קצרה. מגיעים בעוד ${fmtMin(R.stayArr)}.` };
   if (alt) { const sv = alt - best.arr; return sv >= 180 ? { kind: 'hop', t: `חוסך ${fmtMin(sv)}`, s: `לעומת ${fmtMin(alt)} בדרך האחרת. מגיעים בעוד ${fmtMin(best.arr)}.` } : { kind: 'stay', t: 'לא משתלם', s: `זה ייקח ${fmtMin(best.arr)}, בערך כמו הדרך האחרת (${fmtMin(alt)}).` }; }
   return { kind: 'hop', t: 'כדאי לרדת בדרך', s: `מגיעים בעוד ${fmtMin(best.arr)}. כתבו כמה זמן זה לוקח לכם בדרך אחרת כדי לראות כמה זה חוסך.` };
@@ -5512,7 +5515,7 @@ function ridePaxRender() {
   if (RIDE.busy) out = '<div class="hopnote">מחשבים איפה כדאי לרדת…</div>';
   else if (R && R.err) out = `<div class="hopnote bad">${esc(R.err)}</div>`;
   else if (R) {
-    HOP.res = R; out = hopOutHTML(R); const c = hopPicks(R)[HOP.sel] || hopPicks(R)[0];
+    HOP.res = R; hopAuto(R); out = hopOutHTML(R); const c = hopPicks(R)[HOP.sel] || hopPicks(R)[0];
     if (c) out += `<button class="mubtn press" id="rideAsk" style="background:var(--accent);color:#fff">בקשה מ${esc(P.n)} לעצור ב${esc(c.street)}</button>`;
   }
   $('#rideOut').innerHTML = out;
