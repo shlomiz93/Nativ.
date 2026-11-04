@@ -588,6 +588,7 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
 .hopnum{display:inline-grid;place-items:center;width:24px;height:24px;margin-inline-start:8px;border-radius:50%;background:var(--accent);color:#fff;font-size:14px;font-weight:700}
 .hopmodes{display:flex;gap:8px}.hopmodes button{flex:1;height:44px;border-radius:14px;background:var(--fill);color:var(--ink);font-size:15px;font-weight:600;border:1px solid transparent}.hopmodes button[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 18%,transparent);border-color:color-mix(in srgb,var(--accent) 55%,transparent)}.hopmodes button:disabled{opacity:.5}
 .hopcmp{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:18px;background:var(--fill)}.hopcmp small{font-size:12px;color:var(--mute,var(--ink2));font-weight:600}.hopcmp>div{display:grid;grid-template-columns:1fr auto 74px;gap:8px;align-items:center;font-size:14px}.hopcmp b{font-size:15px}.hopcmp i{font-style:normal;font-size:12px;color:var(--ink2);text-align:left}.hopcmp .on span,.hopcmp .on i{color:var(--ink);font-weight:700}
+#walkBar{position:absolute;left:10px;right:10px;bottom:12px;z-index:30;padding:16px;border-radius:28px;display:flex;flex-direction:column;gap:8px;text-align:right}#walkBar .wbbig{font-size:26px;font-weight:800;line-height:1.2;color:var(--ink)}#walkBar .wbsub{font-size:15px;color:var(--ink2)}#walkBar .wbtrack{height:6px;border-radius:3px;background:var(--fill);overflow:hidden}#walkBar .wbtrack i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s}#walkBar .wbfoot{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink2)}#walkBar .hbtop small{font-size:14px;font-weight:700;color:var(--ink2)}
 #hopBar{position:absolute;left:10px;right:10px;bottom:12px;z-index:30;padding:14px;border-radius:26px;display:flex;flex-direction:column;gap:10px}#hopBar .hbtop{display:flex;justify-content:space-between;align-items:center}.hbchips{display:flex;gap:8px}.hbchips button{width:44px;height:44px;border-radius:50%;background:var(--fill);color:var(--ink);font-size:17px;font-weight:700}.hbchips button[aria-pressed="true"]{background:var(--accent);color:#fff}.hbt{font-size:21px}.hbs{font-size:14px;color:var(--ok);font-weight:700}
 .hopbig{font-size:14px;color:var(--ink2)}.hopm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px}.hopm>div{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:14px;background:var(--fill)}.hopm small{font-size:12px;color:var(--mute,var(--ink2));font-weight:600}.hopm b{font-size:17px;letter-spacing:-.01em;white-space:nowrap}.hopc.best .hopm>div:last-child b{font-size:20px;color:var(--accent)}.hopeta{display:flex;flex-direction:column}.hopeta b{font-size:26px;letter-spacing:-.01em}.hopeta span{font-size:13px;color:var(--ink2)}
 .hopnote{font-size:13px;color:var(--ink2);padding:2px 4px;line-height:1.5}.hopnote.bad{color:var(--bad)}
@@ -4717,7 +4718,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793806550';
+const APP_VERSION = '1793807127';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5407,7 +5408,8 @@ function hopBarRender() {
   const R = HOP.res, P = hopPicks(R), me = R.me || hopPlace('me'), c = P[HOP.sel] || P[0], base = Math.min(R.stayArr, R.walkNowArr), save = base < Infinity ? base - c.arr : 0;
   bar.innerHTML = `<div class="hbtop"><div class="hbchips" role="group" aria-label="נקודות ירידה">${P.map((p, k) => `<button class="press" data-hs="${k}" aria-pressed="${k === HOP.sel}" aria-label="נקודה ${k + 1}">${k + 1}</button>`).join('')}</div><button class="circ press" id="hbBack" aria-label="חזרה לתוצאות" style="background:var(--fill)">✕</button></div>
     <b class="hbt">רדו ב${esc(c.street)}</b>${save >= 60 ? `<div class="hbs">חוסך ${fmtMin(save)} לעומת ${R.stayArr <= R.walkNowArr ? 'לנסוע עד הסוף' : 'ללכת מעכשיו'}</div>` : ''}
-    ${c.J ? `<div class="trlegs">${trLines(c.J)}</div>` : ''}${hopMetrics(c)}${c.J ? `<ol class="trsteps">${(TRL.o = 'נקודת הירידה', TRL.d = me.label, trStepsHTML(c.J))}</ol>` : ''}${hopModesHTML()}<button class="mubtn press" id="hbOpen" style="background:var(--accent);color:#fff">המשך מנקודת הירידה בניווט ${HOP.mode === 'transit' ? 'תחבורה ציבורית' : HOP.mode === 'scoot' ? 'אופניים' : 'הליכה'}</button>`;
+    ${c.J ? `<div class="trlegs">${trLines(c.J)}</div>` : ''}${hopMetrics(c)}${c.J ? `<ol class="trsteps">${(TRL.o = 'נקודת הירידה', TRL.d = me.label, trStepsHTML(c.J))}</ol>` : ''}${hopModesHTML()}${HOP.mode !== 'transit' && !c.J ? '<button class="mubtn press" id="hbWalk" style="background:var(--accent);color:#fff">התחילו ללכת משם, במפה</button>' : ''}<button class="mubtn press" id="hbOpen" style="background:var(--fill);color:var(--accent)">פתיחה ב-Google Maps</button>`;
+  { const wb = $('#hbWalk'); if (wb) wb.onclick = () => walkStart(R, c, me); }
   { const ob = $('#hbOpen'); if (ob) ob.onclick = () => { const [la, lo] = toLL(c.x, c.y), [la2, lo2] = toLL(me.x, me.y); window.open(`https://www.google.com/maps/dir/?api=1&origin=${la.toFixed(5)},${lo.toFixed(5)}&destination=${la2.toFixed(5)},${lo2.toFixed(5)}&travelmode=${{ walk: 'walking', scoot: 'bicycling', transit: 'transit' }[HOP.mode] || 'walking'}`, '_blank', 'noopener'); }; }
   $$('#hopBar [data-hs]').forEach(b => b.onclick = () => { HOP.sel = +b.dataset.hs; hopMapDraw(true); hopBarRender(); });
   $$('#hopBar [data-hm]').forEach(b => b.onclick = async () => { HOP.mode = b.dataset.hm; HOP.sel = 0; if (HOP.mode === 'transit' && !R.tr && !R.trBusy) { await hopEnsureTransit(R); } if (!hopPicks(R).length) { HOP.mode = 'walk'; toast('אין תחב״צ מהנקודות בדרך', 2600); } hopMapDraw(true); hopBarRender(); });
@@ -5473,6 +5475,72 @@ if (location.hash.includes('srchdebug')) window.__SRCH = {
 };
 if (location.hash.includes('srchdebug')) window.__PQ = raw => parseQuery(raw);
 if (location.hash.includes('srchdebug')) window.__SA = (q, n) => searchAll(q).slice(0, n || 12).map(p => [p.kind, p.label, p.sub || '']);
+
+/* ================= WLK GUIDE: continue on foot, inside the map =================
+   After the drop-off point is chosen, "התחילו ללכת" opens a turn-by-turn walk from that exact point to the destination:
+   a line on the map, the next instruction with the street name, the distance left, and it follows the real GPS when there is one.
+   The walking path is the same street graph the drop-off was chosen on (slow ramps and fast roads only when nothing else connects). */
+const WLK = { on: false, steps: [], pts: [], cum: [], total: 0, me: null, c: null, s: 0, t0: 0, timer: null, said: new Set(), grp: null, off: 0, started: false };
+function walkBuild(R, c, me) { // → { pts, steps }
+  const nodes = [c.node]; let n = c.node, guard = 0;
+  while (R.wf[n] > 0 && guard++ < 1500) { let best = -1, bv = R.wf[n]; for (const list of [OUT[n], IN[n]]) for (const ei of list) { const e = EDGES[ei], v = e.a === n ? e.b : e.a; if (v < NN && R.wf[v] < bv) { bv = R.wf[v]; best = v; } } if (best < 0) break; n = best; nodes.push(n); }
+  const pts = [[c.x, c.y]], names = [''];
+  const edgeOf = (a, b) => { for (const list of [OUT[a], IN[a]]) for (const ei of list) { const e = EDGES[ei]; if ((e.a === a && e.b === b) || (e.a === b && e.b === a)) return e; } return null; };
+  for (let i = 0; i < nodes.length; i++) { pts.push([NX[nodes[i]], NY[nodes[i]]]); const e = i ? edgeOf(nodes[i - 1], nodes[i]) : null; names.push(e ? (nameOf(WAYS[e.w]) || '') : (names[names.length - 1] || '')); }
+  pts.push([me.x, me.y]); names.push(names[names.length - 1]);
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  // steps: a new step where the street name changes or the heading turns by 35 degrees or more
+  const hd = i => Math.atan2(pts[i + 1][1] - pts[i][1], pts[i + 1][0] - pts[i][0]), steps = []; let cur = { at: 0, name: names[1] || '', turn: 'start' };
+  for (let i = 1; i < pts.length - 1; i++) {
+    let d = hd(i) - hd(i - 1); while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    const nm = names[i + 1] || names[i] || '', turned = Math.abs(d) > 0.61 && cum[i] - cum[cur.at] > 15;
+    if (turned || (nm && cur.name && nm !== cur.name && cum[i] - cum[cur.at] > 15)) { cur.to = cum[i]; steps.push(cur); cur = { at: i, name: nm, turn: Math.abs(d) < 0.61 ? 'straight' : d > 0 ? 'left' : 'right' }; }
+  }
+  cur.to = cum[cum.length - 1]; steps.push(cur);
+  for (const st of steps) { st.s0 = cum[st.at]; st.s1 = st.to; }
+  return { pts, cum, steps, total: cum[cum.length - 1] };
+}
+function walkProject(x, y) { // nearest point on the path → { s, d }
+  let bs = 0, bd = Infinity; const P = WLK.pts;
+  for (let i = 0; i < P.length - 1; i++) { const [x0, y0] = P[i], [x1, y1] = P[i + 1], dx = x1 - x0, dy = y1 - y0, L2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / L2)), px = x0 + t * dx, py = y0 + t * dy, d = Math.hypot(x - px, y - py); if (d < bd) { bd = d; bs = WLK.cum[i] + t * Math.sqrt(L2); } }
+  return { s: bs, d: bd };
+}
+const walkM = m => m < 950 ? Math.max(10, Math.round(m / 10) * 10) + ' מ׳' : (m / 1000).toFixed(1) + ' ק״מ';
+const TURN_HE = { start: 'התחילו ללכת', straight: 'המשיכו ישר', left: 'פנו שמאלה', right: 'פנו ימינה' };
+function walkText(st, to) { const on = n => /^כביש|^מחלף/.test(n) ? 'ב' + n : 'ברחוב ' + n; return st.turn === 'start' ? 'התחילו ללכת' + (st.name ? ' ' + on(st.name) : '') : TURN_HE[st.turn] + (st.name ? ' אל ' + st.name : ''); }
+function walkRender() {
+  const bar = $('#walkBar'); if (!bar) return;
+  const W = WLK, live = liveActive() ? LIVE.fix : null; let x = null, y = null;
+  if (live) { x = live.x; y = live.y; }
+  let s = W.s, off = 0, awaiting = 0;
+  if (x != null) { const pj = walkProject(x, y); if (W.s < 30 && pj.d > 150) awaiting = Math.hypot(x - W.c.x, y - W.c.y); else { s = Math.max(s, pj.s - 5); off = pj.d; W.s = s; } }
+  const left = Math.max(0, W.total - s), min = Math.max(1, Math.round(left / HOP_WALK / 60));
+  let i = W.steps.findIndex(st => s < st.s1 - 3); if (i < 0) i = W.steps.length - 1; const st = W.steps[i], nxt = W.steps[i + 1], dTo = Math.max(0, st.s1 - s);
+  let big, sub;
+  if (awaiting) { big = 'עוד לא בנקודת הירידה'; sub = 'נקודת הירידה בעוד ' + walkM(awaiting) + ' · ' + esc(W.c.street); }
+  else if (left < 25) { big = 'הגעתם'; sub = esc(W.me.label); }
+  else if (off > 70) { big = 'סטיתם מהמסלול'; sub = 'חזרו אל הקו הירוק או לחצו "חישוב מחדש"'; }
+  else { big = nxt ? (dTo < 25 ? walkText(nxt) : 'בעוד ' + walkM(dTo) + ': ' + walkText(nxt)) : 'המשיכו ישר ' + walkM(left) + ' עד היעד'; sub = (nxt ? 'עכשיו ' + (st.name ? (/^כביש|^מחלף/.test(st.name) ? 'ב' : 'ברחוב ') + esc(st.name) : 'ישר') + ' · ' : '') + 'נשארו ' + walkM(left) + ' · כ-' + min + ' דק׳'; }
+  $('#wbBig').textContent = big; $('#wbSub').innerHTML = sub; $('#wbDest').textContent = 'אל ' + W.me.label;
+  $('#wbProg').style.width = Math.min(100, s / W.total * 100) + '%'; $('#wbMode').textContent = live ? 'לפי GPS' : 'ללא GPS: ההנחיות בלבד';
+  if (left < 25 && !W.said.has('end')) { W.said.add('end'); toast('הגעתם ליעד', 3000); if (S.voice) say('הגעתם ליעד'); }
+  else if (!awaiting && nxt && dTo < 60 && !W.said.has('s' + i)) { W.said.add('s' + i); if (S.voice) say(walkText(nxt)); }
+  if (x != null && !awaiting && !(cam.touchT && Date.now() - cam.touchT < 8000)) { cam.mode = 'explore'; cam.tf = { x, y }; }
+}
+function walkStart(R, c, me) {
+  const B = walkBuild(R, c, me); Object.assign(WLK, { on: true, c, me, pts: B.pts, cum: B.cum, steps: B.steps, total: B.total, s: 0, said: new Set(), t0: Date.now() });
+  $('#hopBar') && $('#hopBar').remove(); HOPMAP.on = false; hopOverlayClear(); try { clearRibbon(); } catch (e) { } S.previewRoute = null;
+  addMarker('home', me.x, me.y, { temp: true }, true); WLK.grp = new THREE.Group(); WLK.grp.add(hopStrip(B.pts, 0x2fd6a6, 14)); scene.add(WLK.grp);
+  let bar = document.createElement('div'); bar.id = 'walkBar'; bar.className = 'glass strong';
+  bar.innerHTML = `<div class="hbtop"><small id="wbDest"></small><button class="circ press" id="wbEnd" aria-label="סיום ההליכה">✕</button></div><b id="wbBig" class="wbbig"></b><div id="wbSub" class="wbsub"></div><div class="wbtrack"><i id="wbProg"></i></div><div class="wbfoot"><small id="wbMode"></small><button class="link" id="wbGm">פתיחה ב-Google Maps</button></div>`;
+  $('#device').appendChild(bar); $('#wbEnd').onclick = walkStop;
+  $('#wbGm').onclick = () => { const [la, lo] = toLL(c.x, c.y), [la2, lo2] = toLL(me.x, me.y); window.open(`https://www.google.com/maps/dir/?api=1&origin=${la.toFixed(5)},${lo.toFixed(5)}&destination=${la2.toFixed(5)},${lo2.toFixed(5)}&travelmode=walking`, '_blank', 'noopener'); };
+  const xs = B.pts.map(p => p[0]), ys = B.pts.map(p => p[1]); setTimeout(() => fitBounds(xs, ys, 1.5, 0.5), 150);
+  walkRender(); WLK.timer = setInterval(walkRender, 1000); keepAwake(true);
+}
+function walkStop() { if (!WLK.on) return; WLK.on = false; clearInterval(WLK.timer); const b = $('#walkBar'); if (b) b.remove(); if (WLK.grp) { scene.remove(WLK.grp); WLK.grp.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); WLK.grp = null; } clearMarkers(m => m.userData.temp); keepAwake(false); enterHome(); }
+setInterval(() => { if (WLK.on && S.mode !== 'home') walkStop(); }, 500);
+if (location.hash.includes('walkdebug')) window.__WALK = { walkBuild, walkStart, WLK, walkRender, walkStop };
 
 /* ================= SHARED RIDE: "שיתוף נסיעה" =================
    The driver shares the trip as a link. The passenger opens it, says where they need to get to and (if they like) how long
