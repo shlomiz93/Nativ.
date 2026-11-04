@@ -562,6 +562,9 @@ mark.fill{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--
 .hopbadge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--fill2)}
 :where(button,[role=button],input,a):focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 70%,#fff);outline-offset:2px}
 .rcard{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;text-align:right;margin-bottom:10px;padding:16px 18px}.rcard b{font-size:19px}.rcard span{font-size:14px;color:var(--ink2);line-height:1.45}
+.trlegs{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:8px 0}.trb{display:inline-block;min-width:30px;padding:3px 9px;border-radius:10px;color:#fff;font-size:14px;font-weight:700;text-align:center}.trw{font-size:13px;color:var(--ink2);font-weight:600}.trarr{font-style:normal;color:var(--mute);font-size:14px}
+.trtime{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:16px;background:var(--fill)}.trtime small{font-size:13px;font-weight:600;color:var(--ink2)}.trtime input{flex:1;background:transparent;border:0;color:var(--ink);font:600 17px var(--fn,inherit);text-align:start}.trtime em{font-style:normal;font-size:12px;color:var(--mute)}
+#trBar{position:absolute;left:10px;right:10px;bottom:12px;z-index:30;max-height:58%;overflow:auto;padding:14px;border-radius:26px;display:flex;flex-direction:column;gap:8px}.trsteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}.trsteps li{display:flex;gap:10px;align-items:flex-start}.trsteps b{font-size:15px}.trsteps small{display:block;font-size:13px;color:var(--ink2);margin-top:2px}.trsteps .trb{padding:1px 8px;font-size:13px}.trdot{flex:none;width:12px;height:12px;margin-top:5px;border-radius:50%}.trdot.walk{background:var(--accent)}
 .hopnum{display:inline-grid;place-items:center;width:24px;height:24px;margin-inline-start:8px;border-radius:50%;background:var(--accent);color:#fff;font-size:14px;font-weight:700}
 .hopmodes{display:flex;gap:8px}.hopmodes button{flex:1;height:44px;border-radius:14px;background:var(--fill);color:var(--ink);font-size:15px;font-weight:600;border:1px solid transparent}.hopmodes button[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 18%,transparent);border-color:color-mix(in srgb,var(--accent) 55%,transparent)}.hopmodes button:disabled{opacity:.5}
 .hopcmp{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:18px;background:var(--fill)}.hopcmp small{font-size:12px;color:var(--mute,var(--ink2));font-weight:600}.hopcmp>div{display:grid;grid-template-columns:1fr auto 74px;gap:8px;align-items:center;font-size:14px}.hopcmp b{font-size:15px}.hopcmp i{font-style:normal;font-size:12px;color:var(--ink2);text-align:left}.hopcmp .on span,.hopcmp .on i{color:var(--ink);font-weight:700}
@@ -4604,7 +4607,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793747589';
+const APP_VERSION = '1793788802';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5381,11 +5384,12 @@ function rideJoinOpen() {
 function openRides() {
   const L = Store.data.rides || [], el = $('#sRides');
   el.innerHTML = `<div class="pagehead"></div><h2>נסיעה משותפת</h2><p class="psub" style="margin:0 4px 12px">מישהו נוסע לכיוון שלכם? תגיעו מהר יותר, גם אם אתם לא הנהג.</p>
+    <button class="jcard glass strong press rcard" id="rcTr"><b>תחבורה ציבורית</b><span>אוטובוסים, רכבות ורכבת קלה מדלת לדלת, לפי לוח הזמנים הרשמי</span></button>
     <button class="jcard glass strong press rcard" id="rcJoin"><b>מצטרפים לנסיעה</b><span>קיבלתם קישור מנהג? הדביקו אותו וראו איפה כדאי לרדת</span></button>
     <button class="jcard glass strong press rcard" id="rcHop"><b>מקפיצים אותי</b><span>אתם יודעים לאן הנהג נוסע? הזינו את היעד שלו ושלכם</span></button>
     <button class="jcard glass strong press rcard" id="rcOffer"><b>מציעים לאחרים להצטרף</b><span>אתם נוסעים? בוחרים יעד ושולחים קישור: מי שבדרך שלכם יבקש לרדת בנקודה הנוחה</span></button>
     ${L.length ? '<div class="psub" style="margin:14px 4px 6px">נסיעות שקיבלתם</div>' + L.map((r, i) => `<button class="hopc press" data-jr="${i}"><div class="hoptop"><b>${esc(r.P.n)} נוסע/ת ל${esc(r.P.dl)}</b></div></button>`).join('') : ''}`;
-  $('#rcJoin').onclick = rideJoinOpen; $('#rcHop').onclick = hopOpen; $('#rcOffer').onclick = () => { enterHome(); openSearch(); toast('בחרו יעד, ובמסך המסלול: "הצעה להצטרף לנסיעה"', 3600); };
+  $('#rcTr').onclick = () => trOpen(); $('#rcJoin').onclick = rideJoinOpen; $('#rcHop').onclick = hopOpen; $('#rcOffer').onclick = () => { enterHome(); openSearch(); toast('בחרו יעד, ובמסך המסלול: "הצעה להצטרף לנסיעה"', 3600); };
   $$('#sRides [data-jr]').forEach(b => b.onclick = () => { const P = L[+b.dataset.jr].P; RIDE.P = P; RIDE.me = null; RIDE.res = null; ridePaxOpen(); });
   show('rides');
 }
@@ -5544,6 +5548,162 @@ function teachAt(x, y) {
       b.onclick = () => { learnSave(p.label, p.label, f.x, f.y, 'arrival'); b.remove(); toast('נשמר. בפעם הבאה ננווט בדיוק לכאן.', 3000); };
       btn.before(b);
     } catch (e) { }
+  };
+}
+
+/* ================= TRANSIT CORE: RAPTOR over the official Israeli GTFS timetable (Gush Dan) =================
+   Pure functions, no DOM. Data: transit/transit_<sun|fri|sat>.json.gz built by build_transit.py from the Ministry of Transport feed.
+   Times are seconds since midnight of the service day (can pass 86400). Walking: straight line x1.3 at 1.25 m/s. Planned timetable only, not live. */
+const TRC = { WALK: 1.25, DETOUR: 1.3, ACCESS: 900, XFER: 350, BOARD_BUF: 40, XFER_BUF: 60, K: 5 };
+function trcPrep(D, toXY) {
+  const S = D.stops.length; D.X = new Float64Array(S); D.Y = new Float64Array(S);
+  for (let i = 0; i < S; i++) { const [x, y] = toXY(D.stops[i][0] / 1e5, D.stops[i][1] / 1e5); D.X[i] = x; D.Y[i] = y; }
+  D.sp = Array.from({ length: S }, () => []);
+  D.pats.forEach((p, pi) => p[1].forEach((s, k) => D.sp[s].push([pi, k])));
+  const G = new Map(), key = (cx, cy) => cx * 100003 + cy; D.grid = G; D.gk = key;
+  for (let i = 0; i < S; i++) { const k = key(Math.floor(D.X[i] / 400), Math.floor(D.Y[i] / 400)); (G.get(k) || G.set(k, []).get(k)).push(i); }
+  D.foot = new Array(S); return D;
+}
+function trcNear(D, x, y, r) { // [stop, walkSec] for stops within r metres
+  const out = [], c = Math.ceil(r / 400), cx = Math.floor(x / 400), cy = Math.floor(y / 400);
+  for (let a = -c; a <= c; a++) for (let b = -c; b <= c; b++) { const L = D.grid.get(D.gk(cx + a, cy + b)); if (!L) continue; for (const s of L) { const d = Math.hypot(D.X[s] - x, D.Y[s] - y); if (d <= r) out.push([s, d * TRC.DETOUR / TRC.WALK, d]); } }
+  return out;
+}
+const trcFoot = (D, s) => D.foot[s] || (D.foot[s] = trcNear(D, D.X[s], D.Y[s], TRC.XFER).filter(a => a[0] !== s).map(a => [a[0], Math.max(45, a[1])]));
+const trcT = (P, tr, k) => P[2][tr] + P[4][P[3][tr]][k];
+function trcFindTrip(P, k, t) { // earliest trip departing position k at or after t
+  let lo = 0, hi = P[2].length; while (lo < hi) { const m = (lo + hi) >> 1; if (trcT(P, m, k) < t) lo = m + 1; else hi = m; } return lo < P[2].length ? lo : -1;
+}
+function trcPlan(D, o, d, t0) { // o, d: [x, y] metres. returns journeys sorted by arrival
+  const S = D.stops.length, INF = 1e12, K = TRC.K;
+  const acc = trcNear(D, o[0], o[1], TRC.ACCESS), egr = new Map(trcNear(D, d[0], d[1], TRC.ACCESS).map(a => [a[0], a[1]]));
+  const tau = [], par = []; for (let k = 0; k <= K; k++) { tau.push(new Float64Array(S).fill(INF)); par.push(new Array(S)); }
+  const best = new Float64Array(S).fill(INF); let marked = new Set(), bestDest = INF; const res = [];
+  for (const [s, w] of acc) { tau[0][s] = t0 + w; best[s] = t0 + w; par[0][s] = { t: 'acc', w }; marked.add(s); }
+  for (let k = 1; k <= K; k++) {
+    const Q = new Map(); for (const s of marked) for (const [p, pos] of D.sp[s]) if (!Q.has(p) || Q.get(p) > pos) Q.set(p, pos);
+    const m2 = new Set(), prev = tau[k - 1], cur = tau[k]; cur.set(prev);
+    for (const [pi, st] of Q) {
+      const P = D.pats[pi], S2 = P[1]; let tr = -1, bpos = -1;
+      for (let i = st; i < S2.length; i++) {
+        const s = S2[i];
+        if (tr >= 0) { const a = trcT(P, tr, i); if (a < best[s] && a < bestDest) { cur[s] = a; best[s] = a; par[k][s] = { t: 'ride', p: pi, tr, b: bpos, a: i }; m2.add(s); } }
+        if (prev[s] < INF) { const ready = prev[s] + (k > 1 ? TRC.XFER_BUF : TRC.BOARD_BUF), nt = trcFindTrip(P, i, ready); if (nt >= 0 && (tr < 0 || trcT(P, nt, i) < trcT(P, tr, i))) { tr = nt; bpos = i; } }
+      }
+    }
+    for (const s of [...m2]) for (const [s2, w] of trcFoot(D, s)) { const a = cur[s] + w; if (a < best[s2] && a < bestDest && a < cur[s2]) { cur[s2] = a; best[s2] = a; par[k][s2] = { t: 'walk', from: s, w }; m2.add(s2); } }
+    let kb = INF, ks = -1; for (const [s, w] of egr) if (cur[s] < INF && cur[s] + w < kb) { kb = cur[s] + w; ks = s; }
+    if (ks >= 0 && kb < bestDest) { bestDest = kb; res.push({ k, stop: ks, arr: kb, egress: egr.get(ks) }); }
+    marked = m2; if (!marked.size) break;
+  }
+  const legs = (k, s) => { const out = []; while (k >= 0) { let j = k; while (j > 0 && !par[j][s]) j--; const p = par[j][s]; if (!p) break; if (p.t === 'acc') { out.unshift({ t: 'walk', to: s, sec: p.w, from: -1 }); break; } if (p.t === 'walk') { out.unshift({ t: 'walk', from: p.from, to: s, sec: p.w }); s = p.from; k = j; continue; } const P = D.pats[p.p]; out.unshift({ t: 'ride', p: p.p, tr: p.tr, from: P[1][p.b], to: P[1][p.a], b: p.b, a: p.a, dep: trcT(P, p.tr, p.b), arr: trcT(P, p.tr, p.a) }); s = P[1][p.b]; k = j - 1; } return out; };
+  return res.map(r => { const L = legs(r.k, r.stop); L.push({ t: 'walk', from: r.stop, to: -2, sec: r.egress }); return { arr: r.arr, k: r.k, legs: L }; });
+}
+
+/* ================= TRANSIT: buses, trains and light rail, door to door =================
+   The planner behind "תחבורה ציבורית". Official timetable (Ministry of Transport GTFS, Gush Dan), computed on the phone.
+   It is the planned timetable, not live positions: real-time needs the SIRI feed, which needs a registered key. */
+const TR = { data: null, key: '', busy: false, o: null, d: null, res: null, sel: 0, time: null, on: false, grp: null };
+const trDayKey = () => { const w = new Date().getDay(); return w === 5 ? 'fri' : w === 6 ? 'sat' : 'sun'; };
+const trNow = () => { const n = new Date(); return n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds(); };
+const trClock = s => { s = Math.round(s / 60) * 60; const h = Math.floor(s / 3600) % 24, m = Math.floor(s % 3600 / 60); return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); };
+const trMin = s => Math.max(1, Math.round(s / 60));
+const TRCOL = { 0: '#a24bd6', 2: '#e0463a', 3: '#1f78ff', 8: '#1f78ff' }, TRNAME = { 0: 'רכבת קלה', 2: 'רכבת', 3: 'אוטובוס', 8: 'אוטובוס' };
+async function trLoad() {
+  const key = trDayKey(); if (TR.data && TR.key === key) return TR.data;
+  const r = await fetch(DATA_URL + 'transit_' + key + '.json.gz' + (window.NATIV_V ? '?v=' + window.NATIV_V : '')); if (!r.ok) throw new Error('transit data ' + r.status);
+  const D = JSON.parse(pako.inflate(new Uint8Array(await r.arrayBuffer()), { to: 'string' }));
+  TR.data = trcPrep(D, ll); TR.key = key; return D;
+}
+const trPlace = k => k === 'o' ? (TR.o || { label: 'המיקום שלי', x: egoX, y: egoY, me: true }) : TR.d;
+function trLines(J) { // legs as a row of chips
+  return J.legs.filter(l => l.sec == null || l.sec >= 60).map(l => l.t === 'walk' ? `<span class="trw">${trMin(l.sec)}׳ הליכה</span>` : (L => `<span class="trb" style="background:${TRCOL[L[1]] || TRCOL[3]}">${esc(L[0])}</span>`)(TR.data.lines[TR.data.pats[l.p][0]])).join('<i class="trarr">‹</i>');
+}
+function trJourneyInfo(J, t0) {
+  const rides = J.legs.filter(l => l.t === 'ride'), first = rides[0], walk0 = J.legs[0].t === 'walk' ? J.legs[0].sec : 0;
+  const leave = first.dep - TRC.BOARD_BUF - walk0, wait = Math.max(0, leave - t0);
+  return { leave, wait, arr: J.arr, dur: J.arr - leave, transfers: rides.length - 1 };
+}
+function trCard(J, i, t0) {
+  const f = trJourneyInfo(J, t0), first = J.legs.find(l => l.t === 'ride'), D = TR.data, L = D.lines[D.pats[first.p][0]];
+  return `<button class="hopc press${i === 0 ? ' best' : ''}" data-tj="${i}"><div class="hoptop"><b>${trMin(f.dur)} דק׳</b><span class="hopbadge">${i === 0 ? 'הכי מהיר' : f.transfers === 0 ? 'ישיר' : f.transfers + ' החלפות'}</span></div>
+    <div class="trlegs">${trLines(J)}</div>
+    <div class="hopm"><div><small>צאו בעוד</small><b>${f.wait < 60 ? 'עכשיו' : fmtMin(f.wait)}</b></div><div><small>עלייה בקו ${esc(L[0])}</small><b>${trClock(first.dep)}</b></div><div><small>מגיעים</small><b>${trClock(f.arr)}</b></div></div></button>`;
+}
+function trRender() {
+  const m = $('#modal'); if (!m.querySelector('#trCard')) return;
+  const o = trPlace('o'), d = trPlace('d'); let out = '';
+  if (TR.busy) out = '<div class="hopnote">מחפשים קווים…</div>';
+  else if (TR.res && TR.res.err) out = `<div class="hopnote bad">${esc(TR.res.err)}</div>`;
+  else if (TR.res) { const t0 = TR.res.t0; out = TR.res.J.length ? TR.res.J.map((j, i) => trCard(j, i, t0)).join('') + '<button class="mubtn press hopmap" id="trMap">הצגה על המפה</button>' : '<div class="hopnote">לא מצאנו קו שמתאים בשעה הזו. נסו שעה אחרת או נקודה קרובה יותר לתחנה.</div>';
+    out += `<div class="hopnote">לפי לוח הזמנים הרשמי של משרד התחבורה, לא לפי מיקום האוטובוסים בזמן אמת. ייתכנו עיכובים. הליכה לתחנות מחושבת בקו ישר עם תוספת 30%.</div>`; }
+  $('#trOut').innerHTML = out;
+  $('#trFrom').querySelector('span').textContent = o ? o.label : 'בחירת מוצא'; $('#trTo').querySelector('span').textContent = d ? d.label : 'בחירת יעד';
+  $('#trGo').disabled = !d || TR.busy; $('#trGo').textContent = TR.busy ? 'מחפשים…' : 'חיפוש קווים';
+  $$('#trOut [data-tj]').forEach(b => b.onclick = () => trShowMap(+b.dataset.tj)); const mp = $('#trMap'); if (mp) mp.onclick = () => trShowMap(0);
+}
+function trOpen(dest) {
+  if (dest) { TR.d = { label: dest.label, x: dest.x, y: dest.y }; TR.res = null; }
+  const m = $('#modal'), nowT = new Date(); if (!TR.time) TR.time = '';
+  m.innerHTML = `<div class="mcard glass strong" id="trCard" role="dialog" aria-modal="true" aria-labelledby="trT"><div class="row"><div class="grow"><div class="ptitle" id="trT">תחבורה ציבורית</div><div class="psub">אוטובוסים, רכבות ורכבת קלה מדלת לדלת</div></div><button class="circ press" id="trX" style="background:var(--fill)" aria-label="סגירה">${ICON.x}</button></div>
+    <button class="hopfield press" id="trFrom"><small>מאיפה</small><span></span></button><button class="hopfield press" id="trTo"><small>לאן</small><span></span></button>
+    <label class="trtime"><small>שעת יציאה</small><input type="time" id="trTime" value="${TR.time}" aria-label="שעת יציאה"><em>${TR.time ? '' : 'ריק = עכשיו'}</em></label>
+    <button class="mubtn press" id="trGo" style="background:var(--accent);color:#fff">חיפוש קווים</button><div id="trOut"></div></div>`;
+  m.hidden = false; $('#trX').onclick = () => m.hidden = true; m.onclick = e => { if (e.target === m) m.hidden = true; };
+  const pick = k => () => { m.hidden = true; S.pickFor = 'tr' + k; openSearch(); toast(k === 'o' ? 'חפשו את נקודת המוצא' : 'חפשו את היעד', 2400); };
+  $('#trFrom').onclick = pick('o'); $('#trTo').onclick = pick('d'); $('#trTime').onchange = e => { TR.time = e.target.value; TR.res = null; trRender(); };
+  $('#trGo').onclick = trSearch; trRender();
+}
+async function trSearch() {
+  const o = trPlace('o'), d = trPlace('d'); if (!d || TR.busy) return; TR.busy = true; TR.res = null; trRender();
+  try {
+    const D = await trLoad(); let t0 = trNow(); if (TR.time) { const [h, mi] = TR.time.split(':').map(Number); t0 = h * 3600 + mi * 60; }
+    if (o.me) { o.x = egoX; o.y = egoY; }
+    const J = trcPlan(D, [o.x, o.y], [d.x, d.y], t0).filter(j => j.legs.some(l => l.t === 'ride')).sort((a, b) => a.arr - b.arr);
+    const keep = []; for (const j of J) if (!keep.some(k => Math.abs(k.arr - j.arr) < 60 && k.k === j.k)) keep.push(j);
+    TR.res = { J: keep.slice(0, 4), t0 }; TR.sel = 0;
+  } catch (e) { console.error(e); TR.res = { err: 'לא הצלחנו לטעון את לוחות הזמנים. בדקו חיבור ונסו שוב.' }; }
+  TR.busy = false; trRender();
+}
+/* ---------- map view ---------- */
+function trOverlayClear() { if (TR.grp) { scene.remove(TR.grp); TR.grp.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); TR.grp = null; } clearMarkers(m => m.userData.temp); }
+function trStepsHTML(J) {
+  const D = TR.data, nm = i => esc(i < 0 ? trPlace('o').label : i === -2 ? trPlace('d').label : D.stops[i][2]);
+  return J.legs.filter(l => l.t === 'ride' || l.sec >= 45).map(l => {
+    if (l.t === 'walk') return `<li><i class="trdot walk"></i><span><b>הליכה ${trMin(l.sec)} דק׳</b><small>${l.from === -1 ? 'אל ' + nm(l.to) : l.to === -2 ? 'אל ' + esc(trPlace('d').label) : 'מעבר ל' + nm(l.to)}</small></span></li>`;
+    const P = D.pats[l.p], L = D.lines[P[0]], c = TRCOL[L[1]] || TRCOL[3];
+    return `<li><i class="trdot" style="background:${c}"></i><span><b>${TRNAME[L[1]] || 'קו'} <em class="trb" style="background:${c}">${esc(L[0])}</em> ${L[3] ? 'לכיוון ' + esc(L[3]) : ''}</b><small>עלייה ב${nm(l.from)} ב-${trClock(l.dep)} · ${l.a - l.b} תחנות · ירידה ב${nm(l.to)} ב-${trClock(l.arr)}</small></span></li>`;
+  }).join('');
+}
+function trMapDraw(fit) {
+  trOverlayClear(); const J = TR.res.J[TR.sel], D = TR.data, o = trPlace('o'), d = trPlace('d'), xs = [o.x, d.x], ys = [o.y, d.y]; TR.grp = new THREE.Group();
+  const P = (i) => i === -1 ? [o.x, o.y] : i === -2 ? [d.x, d.y] : [D.X[i], D.Y[i]];
+  for (const l of J.legs) {
+    if (l.t === 'walk') { TR.grp.add(hopStrip([P(l.from), P(l.to)], 0x2fd6a6, 9)); continue; }
+    const PT = D.pats[l.p], L = D.lines[PT[0]], pts = []; for (let k = l.b; k <= l.a; k++) { const s = PT[1][k]; pts.push([D.X[s], D.Y[s]]); xs.push(D.X[s]); ys.push(D.Y[s]); }
+    TR.grp.add(hopStrip(pts, parseInt((TRCOL[L[1]] || TRCOL[3]).slice(1), 16), 14));
+    for (const s of [l.from, l.to]) { const sp = addMarker('dest', D.X[s], D.Y[s], { temp: true }, false); }
+  }
+  addMarker('dest', d.x, d.y, { temp: true }, true); if (!o.me) addMarker('home', o.x, o.y, { temp: true }, true);
+  scene.add(TR.grp); if (fit) setTimeout(() => fitBounds(xs, ys, 1.3, 0.55), 150);
+}
+function trBarRender() {
+  let bar = $('#trBar'); if (!bar) { bar = document.createElement('div'); bar.id = 'trBar'; bar.className = 'glass strong'; $('#device').appendChild(bar); }
+  const f = trJourneyInfo(TR.res.J[TR.sel], TR.res.t0);
+  bar.innerHTML = `<div class="hbtop"><div class="hbchips" role="group" aria-label="אפשרויות">${TR.res.J.map((j, k) => `<button class="press" data-ts="${k}" aria-pressed="${k === TR.sel}" aria-label="אפשרות ${k + 1}">${k + 1}</button>`).join('')}</div><button class="circ press" id="trBack" aria-label="חזרה" style="background:var(--fill)">✕</button></div>
+    <b class="hbt">${trMin(f.dur)} דק׳ · מגיעים ב-${trClock(f.arr)}</b><div class="trlegs">${trLines(TR.res.J[TR.sel])}</div><ol class="trsteps">${trStepsHTML(TR.res.J[TR.sel])}</ol>`;
+  $$('#trBar [data-ts]').forEach(b => b.onclick = () => { TR.sel = +b.dataset.ts; trMapDraw(true); trBarRender(); }); $('#trBack').onclick = () => trMapExit(true);
+}
+function trMapExit(reopen) { if (!TR.on) return; TR.on = false; const b = $('#trBar'); if (b) b.remove(); trOverlayClear(); if (reopen) { enterHome(); trOpen(); } }
+setInterval(() => { if (TR.on && S.mode !== 'home') trMapExit(false); else if (TR.on) { const dk = $('#dock'); if (dk && !dk.hidden) dk.hidden = true; } }, 400);
+function trShowMap(i) { if (!TR.res || !TR.res.J.length) return; TR.sel = i || 0; $('#modal').hidden = true; enterHome(); TR.on = true; trMapDraw(true); trBarRender(); }
+{ // a place picked for the planner comes back here
+  const _pick = pickResult;
+  pickResult = function (p) {
+    if (p && S.pickFor && String(S.pickFor).startsWith('tr') && p.kind !== 'cat' && p.x != null) {
+      const k = S.pickFor.slice(2); S.pickFor = null; TR[k] = { label: p.label, x: p.x, y: p.y }; TR.res = null; enterHome(); trOpen(); return;
+    }
+    return _pick.apply(this, arguments);
   };
 }
 
