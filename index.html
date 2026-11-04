@@ -1738,7 +1738,7 @@ function buildRoute(nodeSeq, edgeSeq, initOff, destLabel, wps = []) {
     // toll roads and Area B on the way
   const tolls = [], zones = []; let tollOn = null, zoneOn = null;
   for (let j = 0; j < M; j += 4) { const w = WAYS[EDGES[edgeSeq[SE[j]]].w];
-    if (w.toll) { if (!tollOn) tollOn = { s: j, e: j, name: w.name || (w.ref ? 'כביש ' + w.ref : 'כביש אגרה'), ref: w.ref }; else tollOn.e = j; } else if (tollOn) { tolls.push(tollOn); tollOn = null; }
+    if (w.toll) { if (!tollOn) tollOn = { s: j, e: j, name: w.name || (w.tunnel ? 'מנהרה בתשלום' : w.ref ? 'כביש ' + w.ref + ' (אגרה)' : 'כביש אגרה'), ref: w.ref, tunnel: !!w.tunnel }; else tollOn.e = j; } else if (tollOn) { tolls.push(tollOn); tollOn = null; }
     if (w.zone) { if (!zoneOn) zoneOn = { s: j, e: j, zone: w.zone }; else zoneOn.e = j; } else if (zoneOn) { zones.push(zoneOn); zoneOn = null; } }
   if (tollOn) tolls.push(tollOn); if (zoneOn) zones.push(zoneOn);
   return { nodeSeq, edgeSeq, M, total, DX, DY, DH, DZ, OFF, SX, SY, SH, V, TT, SE, man, sigs, alerts, nodeS, destLabel, wpS, tolls, zones };
@@ -2611,7 +2611,7 @@ function renderRouteSheet() {
   $$('#routeBody [data-rmode]').forEach(b => b.onclick = () => { if (S.routeMode === b.dataset.rmode) return; S.routeMode = b.dataset.rmode; useRoute(S.alt[S.routeMode]); try { fitRoute(S.alt[S.routeMode]); } catch (e) { } });
   $('#rSteps').onclick = () => openSteps(r);
   $$('#routeBody [data-rm]').forEach(b => b.onclick = () => { S.stops.splice(+b.dataset.rm, 1); openRoutePreview(S.dest, true); });
-  { const tb = $('#rToll'); if (tb) tb.onclick = () => { Store.data.prefs.avoidToll = !Store.data.prefs.avoidToll; Store.save(); openRoutePreview(S.dest, true); }; }
+  { const tb = $('#rToll'); if (tb) tb.onclick = () => { Store.data.prefs.avoidToll = !(Store.data.prefs.avoidToll !== false); Store.save(); openRoutePreview(S.dest, true); }; }
   $('#rAddStop').onclick = () => { S.showSugg = !S.showSugg; useRoute(S.previewRoute); };
   renderSuggSection($('#suggBox'), ch => { if (ch.type === 'dest') openRoutePreview(ch.place); else openRoutePreview(S.dest, true); });
   $('#rGo').onclick = () => ensureSafety(startNav);
@@ -4321,6 +4321,12 @@ for (const z of ['A', 'B', 'G']) for (const fl of (BASE.zones[z] || [])) {
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; for (const [x, y] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
   ZONES[z].push({ pts, bb: [x0, y0, x1, y1] });
 }
+
+{ // Hebron H1 (Palestinian-controlled, closed to Israelis) is missing from the zone data; approximate disc until official boundaries are added
+  const cx = (35.0870 - LON0) * KX, cy = (31.5300 - LAT0) * KY, R = 1200, pts = [];
+  for (let i = 0; i < 16; i++) pts.push([cx + R * Math.cos(i * Math.PI / 8), cy + R * Math.sin(i * Math.PI / 8)]);
+  ZONES.A.push({ pts, bb: [cx - R, cy - R, cx + R, cy + R] });
+}
 function inRing(x, y, pts) { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }
 function zoneAt(x, y) {
   for (const z of ['A', 'G', 'B']) for (const r of ZONES[z]) { const b = r.bb; if (x < b[0] || x > b[2] || y < b[1] || y > b[3]) continue; if (inRing(x, y, r.pts)) return z; }
@@ -4381,14 +4387,16 @@ setInterval(() => {
 
 /* ---------- tolls: say it before the trip, offer the toll-free way ---------- */
 function tollKm(r) { return r && r.tolls ? r.tolls.reduce((a, t) => a + (t.e - t.s), 0) / 1000 : 0; }
+const tollAvoid = () => Store.data.prefs.avoidToll !== false; // default: stay off toll roads when there is another way
 function tollNames(r) { return [...new Set((r.tolls || []).map(t => t.name))].join(', '); }
 function tollLineHTML() {
   const r = S.previewRoute; if (!r) return '';
-  const avoid = !!Store.data.prefs.avoidToll, alt = S.tollAlt;
+  const avoid = tollAvoid(), alt = S.tollAlt;
   if (!avoid && r.tolls && r.tolls.length) {
     const save = alt && alt !== 'none' ? Math.round((alt.TT[Math.floor(alt.sStart || 0)] - r.TT[Math.floor(r.sStart || 0)]) / 60) : null;
     return `<div class="tollline"><span class="tb">₪</span><span class="grow"><b>כביש אגרה בדרך</b><small>${esc(tollNames(r))} · ${tollKm(r).toFixed(0) || '<1'} ק״מ · החשבון מגיע לבעל הרכב</small></span>${alt === 'none' ? '<small class="tno">אין דרך אחרת</small>' : `<button class="link" id="rToll">בלי אגרה${save != null ? ` · ${save > 0 ? '+' + save : save} דק׳` : ''}</button>`}</div>`;
   }
+  if (r.tollForced && r.tolls && r.tolls.length) return `<div class="tollline"><span class="tb">₪</span><span class="grow"><b>אין דרך בלי אגרה ליעד הזה</b><small>${esc(tollNames(r))} · ${tollKm(r).toFixed(0) || '<1'} ק״מ · החשבון מגיע לבעל הרכב</small></span></div>`;
   if (avoid) return `<div class="tollline ok"><span class="tb">₪</span><span class="grow"><b>מסלול בלי כבישי אגרה</b>${alt && alt !== 'none' && alt.tolls && alt.tolls.length ? `<small>דרך ${esc(tollNames(alt))} חוסכים ${Math.max(0, Math.round((r.TT[Math.floor(r.sStart || 0)] - alt.TT[Math.floor(alt.sStart || 0)]) / 60))} דק׳</small>` : ''}</span><button class="link" id="rToll">לאפשר אגרה</button></div>`;
   return '';
 }
@@ -4399,7 +4407,7 @@ function zoneLineHTML() {
 }
 { // plan with the driver's toll choice, and keep the other choice ready for comparison
   const _plan = planRoute;
-  planRoute = function (dest, stops, mode) { AVOID_TOLL = !!Store.data.prefs.avoidToll; try { return _plan(dest, stops, mode); } finally { AVOID_TOLL = false; } };
+  planRoute = function (dest, stops, mode) { let r = null; AVOID_TOLL = tollAvoid(); try { r = _plan(dest, stops, mode); } finally { AVOID_TOLL = false; } if (!r && tollAvoid()) { r = _plan(dest, stops, mode); if (r) r.tollForced = true; } return r; };
   const _orp = openRoutePreview;
   openRoutePreview = async function (dest, keepStops) {
     const z = dest && dest.x != null ? zoneAt(dest.x, dest.y) : '';
@@ -4407,7 +4415,7 @@ function zoneLineHTML() {
     S.tollAlt = null;
     await _orp(dest, keepStops);
     const r = S.previewRoute; if (!r || S.mode !== 'route') return;
-    const avoid = !!Store.data.prefs.avoidToll;
+    const avoid = tollAvoid();
     if ((r.tolls && r.tolls.length) || avoid) {
       Store.data.prefs.avoidToll = !avoid; let alt = null; try { alt = planRoute(S.dest, S.stops || [], S.routeMode); } catch (e) { } Store.data.prefs.avoidToll = avoid;
       S.tollAlt = alt || 'none'; if (typeof renderRouteSheet === 'function') renderRouteSheet();
@@ -4419,6 +4427,11 @@ setInterval(() => {
   const r = S.route; if (!S.driving || !r || !r.tolls) return;
   for (const t of r.tolls) { const d = t.s - S.s; const k = 'toll' + t.s; if (d > 0 && d < 1600 && !r.announced.has(k)) { r.announced.add(k); toast('₪ בעוד ' + (d > 1000 ? (d / 1000).toFixed(1) + ' ק״מ' : Math.round(d / 50) * 50 + ' מ׳') + ' מתחיל כביש אגרה: ' + t.name, 5000); if (S.voice) say('בעוד ' + (d > 1000 ? 'קילומטר וחצי' : Math.round(d / 100) * 100 + ' מטר') + ' מתחיל כביש אגרה, ' + t.name); } }
 }, 1500);
+if (location.hash === '#zonedebug') window.__ZD = {
+  zoneAt, ll: (la, lo) => ({ x: (lo - LON0) * KX, y: (la - LAT0) * KY }),
+  tolls() { const m = new Map(); for (const w of WAYS) if (w && w.toll) { const k = (w.name || '') + '|' + (w.ref || '') + (w.tunnel ? '|tunnel' : ''); m.set(k, (m.get(k) || 0) + 1); } return [...m.entries()]; },
+  nWays: () => WAYS.length, zc: () => ({ A: ZONES.A.length, B: ZONES.B.length, G: ZONES.G.length, V: VILLAGES.length })
+};
 
 /* ================= LIVE TRAFFIC (TomTom) =================
    With a traffic key in the profile, the route is checked against live speeds every few minutes:
@@ -4675,7 +4688,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793801206';
+const APP_VERSION = '1793803665';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
