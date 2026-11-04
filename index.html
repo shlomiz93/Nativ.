@@ -4688,7 +4688,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    The build stamps a version; the hosted site publishes version.json next to index.html.
    Every few minutes (and whenever the app comes back to the foreground) we check; a newer version reloads
    right away when parked, or right after arrival when driving. */
-const APP_VERSION = '1793803665';
+const APP_VERSION = '1793804298';
 let otaPending = false;
 async function otaCheck() {
   if (!/^https?:/.test(location.protocol) || /claude\.ai|claudeusercontent/.test(location.host)) return;
@@ -5716,13 +5716,18 @@ function trcPlan(D, o, d, t0) { // o, d: [x, y] metres. returns journeys sorted 
 const TRL = { o: null, d: null };
 const TR = { data: null, key: '', busy: false, o: null, d: null, res: null, sel: 0, time: null, on: false, grp: null };
 const trDayKey = () => { const w = new Date().getDay(); return w === 5 ? 'fri' : w === 6 ? 'sat' : 'sun'; };
-const trNow = () => { const n = new Date(); return n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds(); };
+const trNow = () => { const n = new Date(); return n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds() + (TR.off || 0); }; // before 04:00 we use yesterday's service day, whose trips run past 24:00
 const trClock = s => { s = Math.round(s / 60) * 60; const h = Math.floor(s / 3600) % 24, m = Math.floor(s % 3600 / 60); return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); };
 const trMin = s => Math.max(1, Math.round(s / 60));
 const TRCOL = { 0: '#a24bd6', 2: '#e0463a', 3: '#1f78ff', 8: '#1f78ff' }, TRNAME = { 0: 'רכבת קלה', 2: 'רכבת', 3: 'אוטובוס', 8: 'אוטובוס' };
-async function trLoad() {
-  const key = trDayKey(); if (TR.data && TR.key === key) return TR.data;
-  const r = await fetch(DATA_URL + 'transit_' + key + '.json.gz' + (window.NATIV_V ? '?v=' + window.NATIV_V : '')); if (!r.ok) throw new Error('transit data ' + r.status);
+const trYmd = d => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+async function trLoad() { // the timetable of the real date (like Moovit / Google Maps), falling back to a weekday-type file
+  const now = new Date(), early = now.getHours() < 4, day = new Date(now.getTime() - (early ? 864e5 : 0)), q = window.NATIV_V ? '?v=' + window.NATIV_V : '';
+  let file = null;
+  try { if (!TR.idx || TR.idxAt < Date.now() - 36e5) { const r = await fetch(DATA_URL + 'transit_index.json' + (q || '?t=' + Math.floor(Date.now() / 36e5))); if (r.ok) { TR.idx = await r.json(); TR.idxAt = Date.now(); } } const h = TR.idx && TR.idx.dates[trYmd(day)]; if (h) file = 'transit_' + h; } catch (e) { }
+  const key = file || trDayKey(); TR.off = early ? 86400 : 0; TR.feedEnd = TR.idx ? TR.idx.feedEnd : 0;
+  if (TR.data && TR.key === key) return TR.data;
+  const r = await fetch(DATA_URL + (file || 'transit_' + key) + '.json.gz' + q); if (!r.ok) throw new Error('transit data ' + r.status);
   const D = JSON.parse(pako.inflate(new Uint8Array(await r.arrayBuffer()), { to: 'string' }));
   TR.data = trcPrep(D, ll); TR.key = key; return D;
 }
@@ -5768,7 +5773,7 @@ function trOpen(dest) {
 async function trSearch() {
   const o = trPlace('o'), d = trPlace('d'); if (!d || TR.busy) return; TR.busy = true; TR.res = null; trRender();
   try {
-    const D = await trLoad(); let t0 = trNow(); if (TR.time) { const [h, mi] = TR.time.split(':').map(Number); t0 = h * 3600 + mi * 60; }
+    const D = await trLoad(); let t0 = trNow(); if (TR.time) { const [h, mi] = TR.time.split(':').map(Number); t0 = h * 3600 + mi * 60 + (TR.off && h < 4 ? 86400 : 0); }
     if (o.me) { o.x = egoX; o.y = egoY; }
     const J = trcPlan(D, [o.x, o.y], [d.x, d.y], t0).filter(j => j.legs.some(l => l.t === 'ride')).sort((a, b) => a.arr - b.arr);
     const keep = []; for (const j of J) if (!keep.some(k => Math.abs(k.arr - j.arr) < 60 && k.k === j.k)) keep.push(j);

@@ -1,0 +1,28 @@
+name: Update transit timetable
+on:
+  schedule:
+    - cron: '30 2 * * *'   # every day 04:30 Israel time
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: transit
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pandas numpy
+      - name: Download the Ministry of Transport GTFS feed
+        run: |
+          curl -fL --retry 5 --retry-delay 20 -A "Mozilla/5.0" -o gtfs.zip https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip
+          mkdir gtfs && unzip -q gtfs.zip -d gtfs && rm gtfs.zip
+      - name: Build per-date timetables (8 days)
+        run: python3 tools/build_transit.py --gtfs gtfs --out d --days 8
+      - name: Commit if changed
+        run: |
+          git config user.name "nativ-bot"; git config user.email "bot@users.noreply.github.com"
+          git add d
+          if git diff --cached --quiet; then echo "no change"; else git commit -m "Transit timetable $(date -u +%F)"; git push; fi
